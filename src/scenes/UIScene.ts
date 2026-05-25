@@ -55,8 +55,12 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-ESC', () => {
       this.selectedType = null;
       this.refreshButtons();
-      this.events.emit('cancelPlacement');
+      this.toGame('cancelPlacement');
     });
+  }
+
+  private toGame(event: string, data?: unknown): void {
+    this.scene.get('GameScene').events.emit(event, data);
   }
 
   // ─── Panel ────────────────────────────────────────────────────────────────────
@@ -138,15 +142,15 @@ export class UIScene extends Phaser.Scene {
       zone.on('pointerdown', () => {
         this.selectedType = this.selectedType === type ? null : type;
         this.refreshButtons();
-        if (this.selectedType) this.events.emit('selectTower', this.selectedType);
-        else this.events.emit('cancelPlacement');
+        if (this.selectedType) this.toGame('selectTower', this.selectedType);
+        else this.toGame('cancelPlacement');
       });
 
       this.input.keyboard?.on(`keydown-${i + 1}`, () => {
         this.selectedType = this.selectedType === type ? null : type;
         this.refreshButtons();
-        if (this.selectedType) this.events.emit('selectTower', this.selectedType);
-        else this.events.emit('cancelPlacement');
+        if (this.selectedType) this.toGame('selectTower', this.selectedType);
+        else this.toGame('cancelPlacement');
       });
     });
   }
