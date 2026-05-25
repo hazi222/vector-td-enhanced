@@ -84,7 +84,8 @@ export class GameScene extends Phaser.Scene {
     this.events.on('startWave',       ()             => { if (this.state === 'prep') this.startNextWave(); });
 
     this.scene.launch('UIScene');
-    this.time.delayedCall(1800, () => { if (this.state === 'prep') this.startNextWave(); });
+    this.cameras.main.fadeIn(800, 0, 0, 0);
+    this.time.delayedCall(2200, () => { if (this.state === 'prep') this.startNextWave(); });
     this.emitUI();
   }
 
