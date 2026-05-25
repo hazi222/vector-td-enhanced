@@ -88,9 +88,12 @@ export class Projectile extends Phaser.GameObjects.Container {
     const step = this.speed * (delta / 1000);
 
     if (dist <= step + 2) {
+      // Snap to target position so hit effects appear in the right place
+      this.x = this.target.x;
+      this.y = this.target.y;
       this.target.takeDamage(this.damage, this.source);
       if (this.slowDuration > 0) this.target.applySlow(this.slowFactor, this.slowDuration);
-      const result: HitResult = { enemy: this.target, x: this.x, y: this.y, source: this.source };
+      const result: HitResult = { enemy: this.target, x: this.target.x, y: this.target.y, source: this.source };
       this.kill();
       return result;
     }
