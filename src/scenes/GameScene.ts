@@ -32,8 +32,6 @@ export class GameScene extends Phaser.Scene {
 
   constructor() { super('GameScene'); }
 
-  // ─── Lifecycle ───────────────────────────────────────────────────────────────
-
   create(): void {
     const pg = this.add.graphics();
     pg.fillStyle(0xffffff, 1);
@@ -99,8 +97,10 @@ export class GameScene extends Phaser.Scene {
       if (proj) {
         proj.setDepth(15);
         this.projectiles.push(proj);
-        if (tower.def.type === 'laser') this.sweepDeadEnemies();
       }
+      // laser returns null from tryFire (instant hit) — sweep kills here,
+      // NOT inside `if (proj)` which never runs for laser
+      if (tower.def.type === 'laser') this.sweepDeadEnemies();
     }
 
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -190,12 +190,19 @@ export class GameScene extends Phaser.Scene {
   // ─── Projectile hits ─────────────────────────────────────────────────────────
 
   private onProjectileHit(hit: HitResult, source: TowerType): void {
+    // Check and kill primary target first
+    if (!hit.enemy.isDead && hit.enemy.hp <= 0) this.killEnemy(hit.enemy);
+
+    // Splash damage for rocket — exclude primary target to avoid double-damage
     const tower = this.towers.find(t => t.def.type === source && t.def.splashRadius > 0);
     if (tower && tower.def.splashRadius > 0) {
-      const splashHit = tower.doSplash(hit.x, hit.y, this.enemies, this);
-      for (const e of splashHit) { if (!e.isDead && e.hp <= 0) this.killEnemy(e); }
+      const splashHit = tower.doSplash(hit.x, hit.y, this.enemies.filter(e => e !== hit.enemy), this);
+      for (const e of splashHit) {
+        if (!e.isDead && e.hp <= 0) this.killEnemy(e);
+      }
     }
-    if (!hit.enemy.isDead && hit.enemy.hp <= 0) this.killEnemy(hit.enemy);
+
+    // Hit flash at impact point
     const tower2 = this.towers.find(t => t.def.type === source);
     if (tower2) {
       const flash = this.add.graphics().setDepth(18);
@@ -334,38 +341,27 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < wp.length - 1; i++) {
       const a = wp[i];
       const b = wp[i + 1];
-
-      // Snap segment bounds to the nearest grid-cell boundary.
-      // PATH_PX uses CELL*N + CELL/2 (half-cell offsets), so we
-      // floor/ceil in cell units then convert back to pixels.
       const minX = Math.floor(Math.min(a.x, b.x) / CELL) * CELL;
       const minY = Math.floor(Math.min(a.y, b.y) / CELL) * CELL;
       const maxX = Math.ceil(Math.max(a.x, b.x)  / CELL) * CELL;
       const maxY = Math.ceil(Math.max(a.y, b.y)  / CELL) * CELL;
-
       const x1 = minX;
       const y1 = minY;
       const w  = maxX - minX;
       const h  = maxY - minY;
-
-      // Glow halo
       g.fillStyle(0x00ff44, 0.04);
       g.fillRect(x1 - 4, y1 - 4, w + 8, h + 8);
-      // Surface
       g.fillStyle(0x060e06, 1);
       g.fillRect(x1, y1, w, h);
-      // Edge
       g.lineStyle(1, 0x00bb33, 0.35);
       g.strokeRect(x1, y1, w, h);
     }
 
-    // Entry arrow (left edge of first horizontal segment)
     const entryX = Math.floor(wp[1].x / CELL) * CELL;
     const entryY = Math.floor(wp[0].y / CELL) * CELL + CELL / 2;
     g.fillStyle(0x00ff44, 0.75);
     g.fillTriangle(entryX - 12, entryY - 8, entryX - 12, entryY + 8, entryX, entryY);
 
-    // Exit X (right edge of last horizontal segment)
     const ex = Math.ceil(wp[wp.length - 2].x / CELL) * CELL + 6;
     const ey = Math.floor(wp[wp.length - 1].y / CELL) * CELL + CELL / 2;
     g.lineStyle(3, 0xff3333, 0.8);
