@@ -25,8 +25,10 @@ export class GameScene extends Phaser.Scene {
   private lives:       number = STARTING_LIVES;
   private bonusPoints: number = 0;
 
-  private placingType: TowerType | null = null;
-  private ghostG!:     Phaser.GameObjects.Graphics;
+  private placingType:   TowerType | null = null;
+  private ghostG!:       Phaser.GameObjects.Graphics;
+  private selectedTower: Tower | null = null;
+  private upgradePanel:  Phaser.GameObjects.GameObject[] = [];
 
   private state: GameState = 'prep';
 
@@ -75,11 +77,11 @@ export class GameScene extends Phaser.Scene {
     this.input.mouse?.disableContextMenu();
     this.input.on('pointermove', this.onPointerMove, this);
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      if (p.rightButtonDown()) this.cancelPlacement();
+      if (p.rightButtonDown()) { this.cancelPlacement(); this.deselectTower(); }
       else this.onPointerDown(p);
     });
 
-    this.events.on('selectTower',     (t: TowerType) => { this.placingType = t; });
+    this.events.on('selectTower',     (t: TowerType) => { this.placingType = t; this.deselectTower(); });
     this.events.on('cancelPlacement', ()             => this.cancelPlacement());
     this.events.on('startWave',       ()             => { if (this.state === 'prep') this.startNextWave(); });
 
@@ -248,26 +250,209 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onPointerDown(pointer: Phaser.Input.Pointer): void {
-    if (!this.placingType || pointer.rightButtonDown()) return;
+    if (pointer.rightButtonDown()) return;
+
     const { col, row } = this.grid.pixelToCell(pointer.x, pointer.y);
-    if (!this.grid.isPlaceable(col, row)) return;
-    const def = TOWERS[this.placingType];
-    if (this.gold < def.cost) return;
 
-    this.gold -= def.cost;
-    this.grid.placeTower(col, row);
+    // Placement mode
+    if (this.placingType) {
+      if (!this.grid.isPlaceable(col, row)) return;
+      const def = TOWERS[this.placingType];
+      if (this.gold < def.cost) return;
 
-    const { x, y } = this.grid.cellToPixel(col, row);
-    const tower = new Tower(this, x, y, def, col, row);
-    tower.setDepth(8);
-    this.towers.push(tower);
+      this.gold -= def.cost;
+      this.grid.placeTower(col, row);
+
+      const { x, y } = this.grid.cellToPixel(col, row);
+      const tower = new Tower(this, x, y, def, col, row);
+      tower.setDepth(8);
+      this.towers.push(tower);
+      this.recalcBoosts();
+      this.emitUI();
+
+      const flash = this.add.graphics().setDepth(25);
+      flash.fillStyle(def.color, 0.4);
+      flash.fillCircle(x, y, 30);
+      this.tweens.add({ targets: flash, alpha: 0, scaleX: 2, scaleY: 2, duration: 300, onComplete: () => flash.destroy() });
+      return;
+    }
+
+    // Selection mode — check if clicking an existing tower
+    const clicked = this.towers.find(t => t.col === col && t.row === row);
+    if (clicked) {
+      this.selectTower(clicked);
+    } else {
+      this.deselectTower();
+    }
+  }
+
+  // ─── Tower selection & upgrade panel ────────────────────────────────────────
+
+  private selectTower(tower: Tower): void {
+    if (this.selectedTower === tower) { this.deselectTower(); return; }
+    this.deselectTower();
+    this.selectedTower = tower;
+    tower.setRangeVisible(true);
+    this.showUpgradePanel(tower);
+  }
+
+  private deselectTower(): void {
+    if (this.selectedTower) {
+      this.selectedTower.setRangeVisible(false);
+      this.selectedTower = null;
+    }
+    this.hideUpgradePanel();
+  }
+
+  private hideUpgradePanel(): void {
+    this.upgradePanel.forEach(o => o.destroy());
+    this.upgradePanel = [];
+  }
+
+  private showUpgradePanel(tower: Tower): void {
+    this.hideUpgradePanel();
+
+    const PW = 218, PH = 170;
+    // Position above tower; clamp to screen
+    let px = tower.x - PW / 2;
+    let py = tower.y - PH - 36;
+    px = Phaser.Math.Clamp(px, 4, GAME_WIDTH - PW - 4);
+    py = Phaser.Math.Clamp(py, 4, GAME_HEIGHT - PH - 100);
+
+    const push = (go: Phaser.GameObjects.GameObject) => { this.upgradePanel.push(go); return go; };
+
+    // Panel background
+    const bg = push(this.add.graphics().setDepth(30)) as Phaser.GameObjects.Graphics;
+    bg.fillStyle(0x0e0a04, 0.96);
+    bg.fillRect(px, py, PW, PH);
+    bg.lineStyle(2, 0x8b6940, 0.9);
+    bg.strokeRect(px, py, PW, PH);
+    bg.lineStyle(1, 0xddbb66, 0.25);
+    bg.strokeRect(px + 3, py + 3, PW - 6, PH - 6);
+
+    // Corner ornaments
+    [[px, py], [px + PW, py], [px, py + PH], [px + PW, py + PH]].forEach(([cx, cy]) => {
+      bg.fillStyle(0xddbb66, 0.4);
+      bg.fillCircle(cx, cy, 4);
+    });
+
+    const cx = px + PW / 2;
+
+    // Tower name
+    push(this.add.text(cx, py + 14, tower.def.name, {
+      fontSize: '14px', fontFamily: 'Georgia, serif', color: '#ddbb66',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5, 0).setDepth(31));
+
+    // Level label with filled/empty stars
+    const stars = '★'.repeat(tower.level) + '☆'.repeat(5 - tower.level);
+    push(this.add.text(cx, py + 32, `Level ${tower.level}  ${stars}`, {
+      fontSize: '12px', fontFamily: 'Georgia, serif',
+      color: tower.level >= 5 ? '#ffee44' : tower.level >= 4 ? '#ddaa22' : '#aa8855',
+    }).setOrigin(0.5, 0).setDepth(31));
+
+    // Divider
+    const divG = push(this.add.graphics().setDepth(31)) as Phaser.GameObjects.Graphics;
+    divG.lineStyle(1, 0x5a4020, 0.7);
+    divG.lineBetween(px + 12, py + 52, px + PW - 12, py + 52);
+
+    // Current stats
+    const dmg   = Math.round(tower.damage);
+    const rng   = Math.round(tower.range);
+    const rate  = Math.round(tower.fireRate);
+    push(this.add.text(px + 14, py + 58, `DMG  ${dmg}`, { fontSize: '11px', fontFamily: 'Courier New', color: '#cc6644' }).setDepth(31));
+    push(this.add.text(cx,      py + 58, `RNG  ${rng}`, { fontSize: '11px', fontFamily: 'Courier New', color: '#4499cc' }).setOrigin(0.5, 0).setDepth(31));
+    push(this.add.text(px + PW - 14, py + 58, `RATE  ${rate}ms`, { fontSize: '11px', fontFamily: 'Courier New', color: '#88cc44' }).setOrigin(1, 0).setDepth(31));
+
+    // Second divider
+    const divG2 = push(this.add.graphics().setDepth(31)) as Phaser.GameObjects.Graphics;
+    divG2.lineStyle(1, 0x5a4020, 0.7);
+    divG2.lineBetween(px + 12, py + 78, px + PW - 12, py + 78);
+
+    if (tower.canUpgrade) {
+      // Next level preview
+      const nextDmg  = Math.round(tower.def.damage * [1,1.35,1.80,2.35,3.00][tower.level] * tower.boostMult);
+      push(this.add.text(cx, py + 86, `→ Level ${tower.level + 1}:  DMG ${nextDmg}`, {
+        fontSize: '11px', fontFamily: 'Courier New', color: '#aaddcc',
+      }).setOrigin(0.5, 0).setDepth(31));
+
+      // Cost
+      const cost = tower.nextUpgradeCost;
+      const canAfford = this.gold >= cost;
+      push(this.add.text(cx, py + 102, `Cost: ${cost} Gold`, {
+        fontSize: '12px', fontFamily: 'Georgia, serif',
+        color: canAfford ? '#ddbb66' : '#774422',
+      }).setOrigin(0.5, 0).setDepth(31));
+
+      // Upgrade button
+      const btnW = 140, btnH = 34;
+      const btnX = cx - btnW / 2;
+      const btnY = py + PH - btnH - 10;
+
+      const btnBg = push(this.add.graphics().setDepth(31)) as Phaser.GameObjects.Graphics;
+      this.drawUpgradeBtn(btnBg, btnX, btnY, btnW, btnH, canAfford, false);
+
+      const btnLabel = push(this.add.text(cx, btnY + btnH / 2, 'UPGRADE', {
+        fontSize: '15px', fontFamily: 'Georgia, serif',
+        color: canAfford ? '#ddbb66' : '#554433',
+        stroke: '#000000', strokeThickness: 3,
+      }).setOrigin(0.5).setDepth(32));
+
+      if (canAfford) {
+        const zone = push(this.add.zone(cx, btnY + btnH / 2, btnW, btnH).setDepth(32).setInteractive({ useHandCursor: true }));
+        (zone as Phaser.GameObjects.Zone).on('pointerover', () => {
+          this.drawUpgradeBtn(btnBg, btnX, btnY, btnW, btnH, true, true);
+          (btnLabel as Phaser.GameObjects.Text).setColor('#ffffff');
+        });
+        (zone as Phaser.GameObjects.Zone).on('pointerout', () => {
+          this.drawUpgradeBtn(btnBg, btnX, btnY, btnW, btnH, true, false);
+          (btnLabel as Phaser.GameObjects.Text).setColor('#ddbb66');
+        });
+        (zone as Phaser.GameObjects.Zone).on('pointerdown', () => {
+          this.purchaseUpgrade(tower);
+        });
+      }
+    } else {
+      // Max level
+      push(this.add.text(cx, py + 92, '— MAXIMUM LEVEL —', {
+        fontSize: '13px', fontFamily: 'Georgia, serif', color: '#ffee44',
+        stroke: '#000000', strokeThickness: 3,
+      }).setOrigin(0.5, 0).setDepth(31));
+      push(this.add.text(cx, py + 114, 'This soldier fights at full power', {
+        fontSize: '10px', fontFamily: 'Georgia, serif', color: '#6a5040', fontStyle: 'italic',
+      }).setOrigin(0.5, 0).setDepth(31));
+    }
+  }
+
+  private drawUpgradeBtn(
+    g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number,
+    canAfford: boolean, hover: boolean,
+  ): void {
+    g.clear();
+    g.fillStyle(hover ? 0x3a2810 : 0x1e1208, hover ? 0.95 : 0.85);
+    g.fillRect(x, y, w, h);
+    g.lineStyle(hover ? 2 : 1, canAfford ? (hover ? 0xffdd88 : 0x8b6940) : 0x443322, canAfford ? 0.9 : 0.4);
+    g.strokeRect(x, y, w, h);
+  }
+
+  private purchaseUpgrade(tower: Tower): void {
+    const cost = tower.nextUpgradeCost;
+    if (this.gold < cost || !tower.canUpgrade) return;
+    this.gold -= cost;
+    tower.upgrade();
     this.recalcBoosts();
     this.emitUI();
 
+    // Visual flash on the tower
     const flash = this.add.graphics().setDepth(25);
-    flash.fillStyle(def.color, 0.4);
-    flash.fillCircle(x, y, 30);
-    this.tweens.add({ targets: flash, alpha: 0, scaleX: 2, scaleY: 2, duration: 300, onComplete: () => flash.destroy() });
+    flash.fillStyle(tower.def.color, 0.6);
+    flash.fillCircle(tower.x, tower.y, 40);
+    this.tweens.add({ targets: flash, alpha: 0, scaleX: 2.5, scaleY: 2.5, duration: 400, onComplete: () => flash.destroy() });
+
+    this.spawnFloatingText(tower.x, tower.y - 30, `Level ${tower.level}!`, '#ffee44');
+
+    // Refresh the panel with updated stats
+    this.showUpgradePanel(tower);
   }
 
   private recalcBoosts(): void {
