@@ -370,7 +370,9 @@ export class GameScene extends Phaser.Scene {
   private drawPath(): void {
     const g  = this.add.graphics().setDepth(1);
     const wp = PATH_PX;
-    const hw = CELL + 1;
+    // hw = half-width of the corridor in pixels, must be a multiple of CELL
+    // so path edges land exactly on grid lines.
+    const hw = CELL / 2;   // was CELL+1 (41px) – caused 1px bleed into adjacent cells
 
     for (let i = 0; i < wp.length - 1; i++) {
       const a = wp[i];
