@@ -152,7 +152,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.waves.startWave();
     this.cameras.main.shake(200, 0.004);
-    this.showBanner(`The Enemy Advances — Wave ${this.waves.currentWave}`);
+    this.showBanner(`Wave ${this.waves.currentWave} Incoming!`, '#00ffff');
     this.emitUI();
   }
 
@@ -162,22 +162,22 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     this.state = 'prep';
-    this.showBanner(`Wave ${this.waves.currentWave} / ${WAVES_TO_WIN} Cleared!`, '#aaddcc');
+    this.showBanner(`Wave ${this.waves.currentWave} / ${WAVES_TO_WIN} Cleared!`, '#00ff00');
     this.emitUI();
     this.time.delayedCall(3500, () => { if (this.state === 'prep') this.startNextWave(); });
   }
 
   private triggerVictory(): void {
     this.state = 'gameover';
-    this.showBanner(`VICTORY! Wave ${this.waves.currentWave} Complete!`, '#ffdd88');
+    this.showBanner(`VICTORY! Wave ${this.waves.currentWave} Complete!`, '#00ff00');
     this.scene.get('UIScene').events.emit('victory', this.waves.currentWave);
   }
 
-  private showBanner(text: string, color = '#ddcc88'): void {
+  private showBanner(text: string, color = '#00ffff'): void {
     const res = Math.min(window.devicePixelRatio || 2, 3);
     const t = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50, text, {
-      fontSize: '40px', fontFamily: 'Georgia, serif', color,
-      stroke: '#111100', strokeThickness: 6, shadow: { blur: 12, color: '#000000', fill: true },
+      fontSize: '52px', fontFamily: 'Courier New, monospace', color,
+      stroke: '#000000', strokeThickness: 6, shadow: { blur: 16, color: '#ff00ff', fill: true },
     }).setResolution(res).setOrigin(0.5).setDepth(50).setAlpha(0);
 
     this.tweens.add({
@@ -216,7 +216,7 @@ export class GameScene extends Phaser.Scene {
     this.spawnDeathEffect(e.x, e.y, e.def.color, e.def.size, e.def.type);
     this.spawnFloatingText(e.x, e.y - 10, `+${e.def.reward}`, '#ffdd88');
     if (e.def.bonusPoints > 0) {
-      this.spawnFloatingText(e.x, e.y - 28, `+${e.def.bonusPoints} Honour`, '#ddaaff');
+      this.spawnFloatingText(e.x, e.y - 28, `+${e.def.bonusPoints} Score`, '#ff00ff');
     }
     e.die();
     this.emitUI();
@@ -333,79 +333,81 @@ export class GameScene extends Phaser.Scene {
     this.hideUpgradePanel();
 
     const res = Math.min(window.devicePixelRatio || 2, 3);
-    const PW = 218, PH = 170;
+    const PW = 320, PH = 250;
     let px = tower.x - PW / 2;
     let py = tower.y - PH - 36;
     px = Phaser.Math.Clamp(px, 4, GAME_WIDTH - PW - 4);
-    py = Phaser.Math.Clamp(py, 4, GAME_HEIGHT - PH - 100);
+    py = Phaser.Math.Clamp(py, 4, GAME_HEIGHT - PH - 140);
 
     const push = (go: Phaser.GameObjects.GameObject) => { this.upgradePanel.push(go); return go; };
     const txt = (x: number, y: number, t: string, style: Phaser.Types.GameObjects.Text.TextStyle) =>
       push(this.add.text(x, y, t, style).setResolution(res));
 
     const bg = push(this.add.graphics().setDepth(30)) as Phaser.GameObjects.Graphics;
-    bg.fillStyle(0x0e0a04, 0.96);
+    bg.fillStyle(0x0a0a1a, 0.96);
     bg.fillRect(px, py, PW, PH);
-    bg.lineStyle(2, 0x8b6940, 0.9);
+    bg.lineStyle(2, 0x00ffff, 0.9);
     bg.strokeRect(px, py, PW, PH);
-    bg.lineStyle(1, 0xddbb66, 0.25);
+    bg.lineStyle(1, 0xff00ff, 0.3);
     bg.strokeRect(px + 3, py + 3, PW - 6, PH - 6);
     [[px, py], [px + PW, py], [px, py + PH], [px + PW, py + PH]].forEach(([cx, cy]) => {
-      bg.fillStyle(0xddbb66, 0.4);
+      bg.fillStyle(0x00ffff, 0.5);
       bg.fillCircle(cx, cy, 4);
     });
 
     const cx = px + PW / 2;
 
-    (txt(cx, py + 14, tower.def.name, {
-      fontSize: '24px', fontFamily: 'Georgia, serif', color: '#ddbb66',
+    const FONT = 'Courier New, monospace';
+
+    (txt(cx, py + 16, tower.def.name, {
+      fontSize: '26px', fontFamily: FONT, color: '#00ffff',
       stroke: '#000000', strokeThickness: 4,
     }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
 
     const stars = '★'.repeat(tower.level) + '☆'.repeat(5 - tower.level);
-    (txt(cx, py + 44, `Level ${tower.level}  ${stars}`, {
-      fontSize: '20px', fontFamily: 'Georgia, serif',
-      color: tower.level >= 5 ? '#ffee44' : tower.level >= 4 ? '#ddaa22' : '#aa8855',
+    (txt(cx, py + 48, `Level ${tower.level}  ${stars}`, {
+      fontSize: '20px', fontFamily: FONT,
+      color: tower.level >= 5 ? '#ffee44' : tower.level >= 4 ? '#ddaa22' : '#ff00ff',
     }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
 
     const divG = push(this.add.graphics().setDepth(31)) as Phaser.GameObjects.Graphics;
-    divG.lineStyle(2, 0x5a4020, 0.7);
-    divG.lineBetween(px + 12, py + 70, px + PW - 12, py + 70);
+    divG.lineStyle(1, 0x00ffff, 0.4);
+    divG.lineBetween(px + 12, py + 78, px + PW - 12, py + 78);
 
     const dmg  = Math.round(tower.damage);
     const rng  = Math.round(tower.range);
     const rate = Math.round(tower.fireRate);
-    (txt(px + 14,      py + 80, `DMG  ${dmg}`,      { fontSize: '18px', fontFamily: 'Courier New', color: '#cc6644' }) as Phaser.GameObjects.Text).setDepth(31);
-    (txt(cx,           py + 80, `RNG  ${rng}`,      { fontSize: '18px', fontFamily: 'Courier New', color: '#4499cc' }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
-    (txt(px + PW - 14, py + 80, `RATE  ${rate}ms`,  { fontSize: '18px', fontFamily: 'Courier New', color: '#88cc44' }) as Phaser.GameObjects.Text).setOrigin(1, 0).setDepth(31);
+    (txt(px + 16,      py + 88, `DMG  ${dmg}`,      { fontSize: '18px', fontFamily: FONT, color: '#ff0088' }) as Phaser.GameObjects.Text).setDepth(31);
+    (txt(cx,           py + 88, `RNG  ${rng}`,      { fontSize: '18px', fontFamily: FONT, color: '#00ffff' }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
+    (txt(px + PW - 16, py + 88, `RATE ${rate}ms`,   { fontSize: '18px', fontFamily: FONT, color: '#00ff00' }) as Phaser.GameObjects.Text).setOrigin(1, 0).setDepth(31);
 
     const divG2 = push(this.add.graphics().setDepth(31)) as Phaser.GameObjects.Graphics;
-    divG2.lineStyle(2, 0x5a4020, 0.7);
-    divG2.lineBetween(px + 12, py + 104, px + PW - 12, py + 104);
+    divG2.lineStyle(1, 0x00ffff, 0.4);
+    divG2.lineBetween(px + 12, py + 118, px + PW - 12, py + 118);
 
     if (tower.canUpgrade) {
       const nextDmg  = Math.round(tower.def.damage * [1,1.35,1.80,2.35,3.00][tower.level] * tower.boostMult);
-      (txt(cx, py + 116, `→ Level ${tower.level + 1}:  DMG ${nextDmg}`, {
-        fontSize: '18px', fontFamily: 'Courier New', color: '#aaddcc',
+      (txt(cx, py + 128, `→ Level ${tower.level + 1}:  DMG ${nextDmg}`, {
+        fontSize: '18px', fontFamily: FONT, color: '#aaddcc',
       }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
 
       const cost = tower.nextUpgradeCost;
       const canAfford = this.gold >= cost;
-      (txt(cx, py + 140, `Cost: ${cost} Gold`, {
-        fontSize: '20px', fontFamily: 'Georgia, serif',
-        color: canAfford ? '#ddbb66' : '#774422',
+      (txt(cx, py + 154, `Cost: ${cost} Gold`, {
+        fontSize: '20px', fontFamily: FONT,
+        color: canAfford ? '#ffee44' : '#aa4466',
       }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
 
-      const btnW = 180, btnH = 50;
+      const btnW = 200, btnH = 52;
       const btnX = cx - btnW / 2;
-      const btnY = py + PH - btnH - 12;
+      const btnY = py + PH - btnH - 14;
 
       const btnBg = push(this.add.graphics().setDepth(31)) as Phaser.GameObjects.Graphics;
       this.drawUpgradeBtn(btnBg, btnX, btnY, btnW, btnH, canAfford, false);
 
       const btnLabel = txt(cx, btnY + btnH / 2, 'UPGRADE', {
-        fontSize: '24px', fontFamily: 'Georgia, serif',
-        color: canAfford ? '#ddbb66' : '#554433',
+        fontSize: '24px', fontFamily: FONT,
+        color: canAfford ? '#00ffff' : '#554433',
         stroke: '#000000', strokeThickness: 4,
       }) as Phaser.GameObjects.Text;
       (btnLabel as Phaser.GameObjects.Text).setOrigin(0.5).setDepth(32);
@@ -414,21 +416,21 @@ export class GameScene extends Phaser.Scene {
         const zone = push(this.add.zone(cx, btnY + btnH / 2, btnW, btnH).setDepth(32).setInteractive({ useHandCursor: true }));
         (zone as Phaser.GameObjects.Zone).on('pointerover', () => {
           this.drawUpgradeBtn(btnBg, btnX, btnY, btnW, btnH, true, true);
-          (btnLabel as Phaser.GameObjects.Text).setColor('#ffffff');
+          (btnLabel as Phaser.GameObjects.Text).setColor('#ff00ff');
         });
         (zone as Phaser.GameObjects.Zone).on('pointerout', () => {
           this.drawUpgradeBtn(btnBg, btnX, btnY, btnW, btnH, true, false);
-          (btnLabel as Phaser.GameObjects.Text).setColor('#ddbb66');
+          (btnLabel as Phaser.GameObjects.Text).setColor('#00ffff');
         });
         (zone as Phaser.GameObjects.Zone).on('pointerdown', () => this.purchaseUpgrade(tower));
       }
     } else {
-      (txt(cx, py + 116, '— MAXIMUM LEVEL —', {
-        fontSize: '22px', fontFamily: 'Georgia, serif', color: '#ffee44',
+      (txt(cx, py + 130, '— MAXIMUM LEVEL —', {
+        fontSize: '22px', fontFamily: FONT, color: '#ffee44',
         stroke: '#000000', strokeThickness: 4,
       }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
-      (txt(cx, py + 150, 'This soldier fights at full power', {
-        fontSize: '18px', fontFamily: 'Georgia, serif', color: '#6a5040', fontStyle: 'italic',
+      (txt(cx, py + 168, 'Tower at peak power', {
+        fontSize: '18px', fontFamily: FONT, color: '#5a8a8a', fontStyle: 'italic',
       }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
     }
   }
@@ -438,9 +440,9 @@ export class GameScene extends Phaser.Scene {
     canAfford: boolean, hover: boolean,
   ): void {
     g.clear();
-    g.fillStyle(hover ? 0x3a2810 : 0x1e1208, hover ? 0.95 : 0.85);
+    g.fillStyle(hover ? 0xff00ff : 0x0a0a1a, hover ? 0.3 : 0.85);
     g.fillRect(x, y, w, h);
-    g.lineStyle(hover ? 2 : 1, canAfford ? (hover ? 0xffdd88 : 0x8b6940) : 0x443322, canAfford ? 0.9 : 0.4);
+    g.lineStyle(hover ? 2 : 1, canAfford ? (hover ? 0xff00ff : 0x00ffff) : 0x443322, canAfford ? 0.9 : 0.4);
     g.strokeRect(x, y, w, h);
   }
 
@@ -521,7 +523,7 @@ export class GameScene extends Phaser.Scene {
   private spawnFloatingText(x: number, y: number, text: string, color: string): void {
     const res = Math.min(window.devicePixelRatio || 2, 3);
     const t = this.add.text(x, y, text, {
-      fontSize: '16px', fontFamily: 'Georgia, serif', color,
+      fontSize: '22px', fontFamily: 'Courier New, monospace', color,
       stroke: '#000000', strokeThickness: 3,
     }).setResolution(res).setOrigin(0.5).setDepth(25);
     this.tweens.add({ targets: t, y: y - 44, alpha: 0, duration: 900, ease: 'Cubic.Out', onComplete: () => t.destroy() });

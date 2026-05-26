@@ -24,18 +24,20 @@ const ACTION_BH = 48;
 const TOWER_ORDER: TowerType[] = ['laser', 'rocket', 'slow', 'booster'];
 
 const C = {
-  panelBg:   0x110a04,
-  panelBdr:  0x8b6940,
-  gold:      '#ddbb66',
-  goldDim:   '#886633',
-  lives:     '#cc6644',
-  wave:      '#aaddcc',
-  honour:    '#cc99ff',
-  label:     '#7a6040',
-  hint:      '#4a3820',
-  btnActive: 0x3a2810,
-  btnBorder: 0x8b6940,
+  panelBg:   0x0a0a1a,
+  panelBdr:  0x00ffff,
+  gold:      '#ffee44',
+  goldDim:   '#aa9933',
+  lives:     '#ff0088',
+  wave:      '#00ffff',
+  honour:    '#ff00ff',
+  label:     '#5a8a8a',
+  hint:      '#4a6a6a',
+  btnActive: 0x1a3a3a,
+  btnBorder: 0x00ffff,
 };
+
+const FONT = 'Courier New, monospace';
 
 // Helper: create sharp text with auto device-pixel-ratio resolution
 function mkText(
@@ -79,6 +81,7 @@ export class UIScene extends Phaser.Scene {
       this.refreshHUD();
     });
     this.events.on('gameOver', (wave: number) => this.showGameOver(wave));
+    this.events.on('victory', (wave: number) => this.showVictory(wave));
 
     this.input.keyboard?.on('keydown-ESC', () => {
       this.selectedType = null;
@@ -99,7 +102,7 @@ export class UIScene extends Phaser.Scene {
     g.fillRect(0, PANEL_Y, GAME_WIDTH, PANEL_H);
     g.lineStyle(3, C.panelBdr, 0.9);
     g.lineBetween(0, PANEL_Y, GAME_WIDTH, PANEL_Y);
-    g.lineStyle(1, 0xddbb66, 0.2);
+    g.lineStyle(1, 0xff00ff, 0.3);
     g.lineBetween(0, PANEL_Y + 3, GAME_WIDTH, PANEL_Y + 3);
     this.drawCornerOrnament(g, 4, PANEL_Y + 4);
     this.drawCornerOrnament(g, GAME_WIDTH - 4, PANEL_Y + 4);
@@ -114,9 +117,9 @@ export class UIScene extends Phaser.Scene {
   }
 
   private drawCornerOrnament(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
-    g.lineStyle(1, 0xddbb66, 0.5);
+    g.lineStyle(1, 0x00ffff, 0.5);
     g.strokeCircle(x, y + 6, 6);
-    g.fillStyle(0xddbb66, 0.3);
+    g.fillStyle(0x00ffff, 0.3);
     g.fillCircle(x, y + 6, 3);
   }
 
@@ -135,16 +138,16 @@ export class UIScene extends Phaser.Scene {
       this.drawButton(bg, cx, cy, type, false);
 
       mkText(this, cx - BTN_W / 2 + 8, cy - BTN_H / 2 + 8, `${i + 1}`, {
-        fontSize: '24px', fontFamily: 'Courier New', color: C.hint,
+        fontSize: '24px', fontFamily: FONT, color: C.hint,
       }).setOrigin(0, 0);
 
       mkText(this, cx, cy - BTN_H / 2 + 28, def.name, {
-        fontSize: '24px', fontFamily: 'Georgia, serif', color: C.gold,
+        fontSize: '24px', fontFamily: FONT, color: C.wave,
         stroke: '#000000', strokeThickness: 3,
       }).setOrigin(0.5, 0);
 
       mkText(this, cx, cy + BTN_H / 2 - 20, `${def.cost}g`, {
-        fontSize: '26px', fontFamily: 'Courier New', color: C.goldDim,
+        fontSize: '26px', fontFamily: FONT, color: C.gold,
       }).setOrigin(0.5, 1);
 
       const zone = this.add.zone(cx, cy, BTN_W + 4, BTN_H + 4).setInteractive();
@@ -214,8 +217,8 @@ export class UIScene extends Phaser.Scene {
     this.drawActionBtnBg(false);
 
     this.actionBtnLabel = mkText(this, ACTION_BX, ACTION_BY, '▶  Send Wave', {
-      fontSize: '32px', fontFamily: 'Georgia, serif',
-      color: C.gold, stroke: '#000000', strokeThickness: 4,
+      fontSize: '32px', fontFamily: FONT,
+      color: C.wave, stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5);
 
     const zone = this.add.zone(ACTION_BX, ACTION_BY, ACTION_BW, ACTION_BH)
@@ -227,9 +230,9 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-SPACE', () => this.onActionBtnClick());
 
     this.pauseOverlay = mkText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, 'PAUSED', {
-      fontSize: '120px', fontFamily: 'Georgia, serif', color: '#ddbb66',
+      fontSize: '120px', fontFamily: FONT, color: '#00ffff',
       stroke: '#000000', strokeThickness: 12,
-      shadow: { blur: 32, color: '#ff4400', fill: true },
+      shadow: { blur: 32, color: '#ff00ff', fill: true },
     }).setOrigin(0.5).setDepth(100).setVisible(false);
   }
 
@@ -237,15 +240,15 @@ export class UIScene extends Phaser.Scene {
     const disabled = this.uiState.state === 'gameover';
     const g = this.actionBtnG;
     g.clear();
-    g.fillStyle(!disabled && hover ? 0x3a2810 : 0x1a1008, !disabled && hover ? 0.95 : 0.85);
+    g.fillStyle(!disabled && hover ? 0xff00ff : 0x0a0a1a, !disabled && hover ? 0.3 : 0.85);
     g.fillRect(ACTION_BX - ACTION_BW / 2, ACTION_BY - ACTION_BH / 2, ACTION_BW, ACTION_BH);
-    const borderColor = disabled ? 0x443322 : (hover ? 0xddbb66 : 0x8b6940);
+    const borderColor = disabled ? 0x443322 : (hover ? 0xff00ff : 0x00ffff);
     const borderAlpha = disabled ? 0.3 : (hover ? 0.95 : 0.7);
     g.lineStyle(hover ? 2 : 1, borderColor, borderAlpha);
     g.strokeRect(ACTION_BX - ACTION_BW / 2, ACTION_BY - ACTION_BH / 2, ACTION_BW, ACTION_BH);
     if (!disabled) {
       const cs = 5, hw = ACTION_BW / 2, hh = ACTION_BH / 2;
-      g.lineStyle(1, hover ? 0xddbb66 : 0x664422, hover ? 0.7 : 0.4);
+      g.lineStyle(1, hover ? 0xff00ff : 0x00ffff, hover ? 0.7 : 0.4);
       [[ACTION_BX - hw, ACTION_BY - hh], [ACTION_BX + hw, ACTION_BY - hh],
        [ACTION_BX - hw, ACTION_BY + hh], [ACTION_BX + hw, ACTION_BY + hh]].forEach(([ex, ey], i) => {
         const sx = i % 2 === 0 ? 1 : -1, sy = i < 2 ? 1 : -1;
@@ -290,20 +293,20 @@ export class UIScene extends Phaser.Scene {
     const mid = PANEL_Y + PANEL_H / 2 + 2;
 
     const lbl = (text: string, x: number, y: number) =>
-      mkText(this, x, y, text, { fontSize: '22px', fontFamily: 'Georgia, serif', color: C.label }).setOrigin(0, 0.5);
+      mkText(this, x, y, text, { fontSize: '22px', fontFamily: FONT, color: C.label }).setOrigin(0, 0.5);
 
-    lbl('ASSAULT',  rx,       mid - 36);
-    lbl('TREASURY', rx + 120, mid - 36);
-    lbl('GARRISON', rx + 250, mid - 36);
-    lbl('HONOUR',   rx,       mid + 24);
+    lbl('WAVE',  rx,       mid - 36);
+    lbl('GOLD',  rx + 120, mid - 36);
+    lbl('LIVES', rx + 250, mid - 36);
+    lbl('SCORE', rx,       mid + 24);
 
-    this.waveText   = mkText(this, rx,       mid - 12, '—',      { fontSize: '52px', fontFamily: 'Georgia, serif', color: C.wave   }).setOrigin(0, 0.5);
-    this.goldText   = mkText(this, rx + 120, mid - 12, '200',    { fontSize: '48px', fontFamily: 'Georgia, serif', color: C.gold   }).setOrigin(0, 0.5);
-    this.livesText  = mkText(this, rx + 250, mid - 12, '20',     { fontSize: '48px', fontFamily: 'Georgia, serif', color: C.lives  }).setOrigin(0, 0.5);
-    this.honourText = mkText(this, rx,       mid + 40, '0 pts', { fontSize: '28px', fontFamily: 'Georgia, serif', color: C.honour }).setOrigin(0, 0.5);
+    this.waveText   = mkText(this, rx,       mid - 12, '—',      { fontSize: '52px', fontFamily: FONT, color: C.wave   }).setOrigin(0, 0.5);
+    this.goldText   = mkText(this, rx + 120, mid - 12, '200',    { fontSize: '48px', fontFamily: FONT, color: C.gold   }).setOrigin(0, 0.5);
+    this.livesText  = mkText(this, rx + 250, mid - 12, '20',     { fontSize: '48px', fontFamily: FONT, color: C.lives  }).setOrigin(0, 0.5);
+    this.honourText = mkText(this, rx,       mid + 40, '0 pts', { fontSize: '28px', fontFamily: FONT, color: C.honour }).setOrigin(0, 0.5);
 
     this.hintText = mkText(this, ACTION_BX, PANEL_Y + 12, '', {
-      fontSize: '20px', fontFamily: 'Courier New', color: '#6a5030',
+      fontSize: '20px', fontFamily: FONT, color: '#5a8a8a',
     }).setOrigin(0.5, 0);
   }
 
@@ -315,10 +318,10 @@ export class UIScene extends Phaser.Scene {
     this.honourText.setText(`${s.bonusPoints} pts`);
 
     const hint = s.state === 'wave'
-      ? `Wave ${s.wave} — Hold the Line!  •  SPACE to pause  •  ESC / Right-click cancel`
+      ? `Wave ${s.wave} — Defend!  •  SPACE to pause  •  ESC / Right-click cancel`
       : s.state === 'prep'
-        ? 'The enemy regroups...  •  SPACE to send wave early  •  Keys 1-4 to build'
-        : 'Middle-Earth has fallen.';
+        ? 'Build your defenses...  •  SPACE to send wave early  •  Keys 1-4 to build'
+        : 'System breached.';
     this.hintText.setText(hint);
 
     this.livesText.setColor(s.lives <= 5 ? '#ff3300' : s.lives <= 10 ? '#ff8800' : C.lives);
@@ -343,32 +346,84 @@ export class UIScene extends Phaser.Scene {
     const cy = GAME_HEIGHT / 2;
 
     const fr = this.add.graphics();
-    fr.lineStyle(2, 0x8b6940, 0.8);
-    fr.strokeRect(cx - 260, cy - 110, 520, 220);
-    fr.lineStyle(1, 0xddbb66, 0.3);
-    fr.strokeRect(cx - 254, cy - 104, 508, 208);
+    fr.lineStyle(3, 0xff0088, 0.8);
+    fr.strokeRect(cx - 320, cy - 150, 640, 300);
+    fr.lineStyle(1, 0xff00ff, 0.3);
+    fr.strokeRect(cx - 312, cy - 142, 624, 284);
 
-    mkText(this, cx, cy - 70, 'MIDDLE-EARTH HAS FALLEN', {
-      fontSize: '40px', fontFamily: 'Georgia, serif', color: '#cc3300',
-      stroke: '#330000', strokeThickness: 6,
-      shadow: { blur: 20, color: '#ff2200', fill: true },
+    mkText(this, cx, cy - 95, 'SYSTEM BREACHED', {
+      fontSize: '60px', fontFamily: FONT, color: '#ff0088',
+      stroke: '#000000', strokeThickness: 8,
+      shadow: { blur: 24, color: '#ff00ff', fill: true },
     }).setOrigin(0.5);
 
-    mkText(this, cx, cy - 18, `The enemy broke through on Wave ${wave}`, {
-      fontSize: '20px', fontFamily: 'Georgia, serif', color: '#aa8855',
+    mkText(this, cx, cy - 20, `Defenses fell on Wave ${wave}`, {
+      fontSize: '28px', fontFamily: FONT, color: '#00ffff',
     }).setOrigin(0.5);
 
-    mkText(this, cx, cy + 14, `"Not all tears are an evil."`, {
-      fontSize: '16px', fontFamily: 'Georgia, serif', color: '#776644', fontStyle: 'italic',
+    mkText(this, cx, cy + 20, 'Reboot and try again', {
+      fontSize: '22px', fontFamily: FONT, color: '#5a8a8a', fontStyle: 'italic',
     }).setOrigin(0.5);
 
-    const btn = mkText(this, cx, cy + 60, '[ Rally and Try Again ]', {
-      fontSize: '22px', fontFamily: 'Georgia, serif', color: '#ddbb66',
-      stroke: '#221100', strokeThickness: 3,
+    const btn = mkText(this, cx, cy + 90, '[ RETRY ]', {
+      fontSize: '32px', fontFamily: FONT, color: '#00ffff',
+      stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-    btn.on('pointerover', () => btn.setColor('#ffffff'));
-    btn.on('pointerout',  () => btn.setColor('#ddbb66'));
-    btn.on('pointerdown', () => this.scene.manager.start('GameScene'));
+    btn.on('pointerover', () => btn.setColor('#ff00ff'));
+    btn.on('pointerout',  () => btn.setColor('#00ffff'));
+    btn.on('pointerdown', () => this.returnToMapSelect());
+  }
+
+  private returnToMapSelect(): void {
+    this.scene.stop('GameScene');
+    this.scene.stop('UIScene');
+    this.scene.start('MapSelectScene');
+  }
+
+  // ─── Victory ──────────────────────────────────────────────────────────────────
+
+  private showVictory(wave: number): void {
+    if (this.isPaused) {
+      this.isPaused = false;
+      this.scene.resume('GameScene');
+      this.pauseOverlay.setVisible(false);
+    }
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.8);
+    overlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2;
+
+    const fr = this.add.graphics();
+    fr.lineStyle(3, 0x00ff00, 0.8);
+    fr.strokeRect(cx - 320, cy - 150, 640, 300);
+    fr.lineStyle(1, 0x00ffff, 0.3);
+    fr.strokeRect(cx - 312, cy - 142, 624, 284);
+
+    mkText(this, cx, cy - 95, 'VICTORY!', {
+      fontSize: '72px', fontFamily: FONT, color: '#00ff00',
+      stroke: '#000000', strokeThickness: 8,
+      shadow: { blur: 24, color: '#00ffff', fill: true },
+    }).setOrigin(0.5);
+
+    mkText(this, cx, cy - 15, `All ${wave} waves cleared!`, {
+      fontSize: '28px', fontFamily: FONT, color: '#00ffff',
+    }).setOrigin(0.5);
+
+    mkText(this, cx, cy + 25, `Final Score: ${this.uiState.bonusPoints} pts`, {
+      fontSize: '24px', fontFamily: FONT, color: '#ff00ff',
+    }).setOrigin(0.5);
+
+    const btn = mkText(this, cx, cy + 90, '[ PLAY AGAIN ]', {
+      fontSize: '32px', fontFamily: FONT, color: '#00ffff',
+      stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    btn.on('pointerover', () => btn.setColor('#ff00ff'));
+    btn.on('pointerout',  () => btn.setColor('#00ffff'));
+    btn.on('pointerdown', () => this.returnToMapSelect());
   }
 }
