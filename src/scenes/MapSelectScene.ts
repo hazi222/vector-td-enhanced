@@ -41,39 +41,30 @@ export class MapSelectScene extends Phaser.Scene {
   private drawBackground(): void {
     const g = this.add.graphics();
 
-    // Dark gothic parchment
-    g.fillStyle(0x08030a, 1);
+    // Dark neon background
+    g.fillStyle(0x0a0a1a, 1);
     g.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Subtle red/orange horizon glow
-    for (let i = 0; i < 7; i++) {
-      g.fillStyle(0xff3300, 0.025 - i * 0.003);
+    // Neon cyan glow at top
+    g.fillStyle(0x00ffff, 0.06);
+    g.fillCircle(GAME_WIDTH / 2, GAME_HEIGHT * 0.12, 300);
+    g.fillStyle(0x00ffff, 0.03);
+    g.fillCircle(GAME_WIDTH / 2, GAME_HEIGHT * 0.12, 180);
+
+    // Neon magenta glow at bottom
+    for (let i = 0; i < 6; i++) {
+      g.fillStyle(0xff00ff, 0.02 - i * 0.002);
       g.fillRect(0, GAME_HEIGHT - 60 - i * 50, GAME_WIDTH, 60 + i * 50);
     }
 
-    // Upper ambient glow
-    g.fillStyle(0xcc1100, 0.05);
-    g.fillCircle(GAME_WIDTH / 2, GAME_HEIGHT * 0.12, 280);
-    g.fillStyle(0xff3300, 0.03);
-    g.fillCircle(GAME_WIDTH / 2, GAME_HEIGHT * 0.12, 180);
-
-    // Faint stars
-    for (let s = 0; s < 30; s++) {
-      g.fillStyle(0xffffee, Math.random() * 0.06 + 0.015);
+    // Bright neon stars
+    for (let s = 0; s < 40; s++) {
+      g.fillStyle(0x00ffff, Math.random() * 0.15 + 0.05);
       g.fillCircle(
         Phaser.Math.Between(0, GAME_WIDTH),
         Phaser.Math.Between(0, GAME_HEIGHT / 3),
-        0.7,
+        1,
       );
-    }
-
-    // Smoke streaks
-    g.lineStyle(1, 0x221100, 0.18);
-    for (let s = 0; s < 10; s++) {
-      const sy  = Phaser.Math.Between(20, GAME_HEIGHT - 80);
-      const sx1 = Phaser.Math.Between(0, GAME_WIDTH / 2);
-      const sx2 = sx1 + Phaser.Math.Between(60, 220);
-      g.lineBetween(sx1, sy, sx2, sy + Phaser.Math.Between(-5, 5));
     }
   }
 
@@ -83,25 +74,22 @@ export class MapSelectScene extends Phaser.Scene {
     const res = Math.min(window.devicePixelRatio || 2, 3);
     const cx  = GAME_WIDTH / 2;
 
-    this.add.text(cx, 18, 'CHOOSE YOUR BATTLEFIELD', {
-      fontSize: '26px', fontFamily: 'Georgia, serif', color: '#ddbb66',
-      stroke: '#110800', strokeThickness: 5,
-      shadow: { blur: 16, color: '#ff4400', fill: true },
+    this.add.text(cx, 18, 'SELECT YOUR ARENA', {
+      fontSize: '32px', fontFamily: 'Courier New, monospace', color: '#00ffff',
+      stroke: '#ff00ff', strokeThickness: 3,
     }).setResolution(res).setOrigin(0.5, 0);
 
-    this.add.text(cx, 50, 'Where shall the line be drawn?', {
-      fontSize: '14px', fontFamily: 'Georgia, serif', color: '#7a6040',
+    this.add.text(cx, 50, 'Choose a map to defend', {
+      fontSize: '14px', fontFamily: 'Courier New, monospace', color: '#ff00ff',
       fontStyle: 'italic',
     }).setResolution(res).setOrigin(0.5, 0);
 
-    // Decorative divider lines
+    // Neon divider lines
     const div = this.add.graphics();
-    div.lineStyle(1, 0x8b6940, 0.55);
+    div.lineStyle(1, 0x00ffff, 0.5);
     div.lineBetween(cx - 260, 70, cx + 260, 70);
-    div.fillStyle(0xddbb66, 0.4);
+    div.fillStyle(0x00ffff, 0.6);
     div.fillCircle(cx, 70, 3);
-    div.fillCircle(cx - 260, 70, 2);
-    div.fillCircle(cx + 260, 70, 2);
   }
 
   // ─── Back button ─────────────────────────────────────────────────────────────
@@ -112,20 +100,20 @@ export class MapSelectScene extends Phaser.Scene {
     const btnG = this.add.graphics();
     const drawBack = (hover: boolean) => {
       btnG.clear();
-      btnG.fillStyle(hover ? 0x2a1c0e : 0x150e06, hover ? 0.9 : 0.8);
+      btnG.fillStyle(hover ? 0xff00ff : 0x0a0a1a, hover ? 0.3 : 0.2);
       btnG.fillRect(8, 8, 100, 32);
-      btnG.lineStyle(1, hover ? 0xddbb66 : 0x8b6940, hover ? 0.9 : 0.6);
+      btnG.lineStyle(1, hover ? 0xff00ff : 0x00ffff, hover ? 0.8 : 0.6);
       btnG.strokeRect(8, 8, 100, 32);
     };
     drawBack(false);
 
     const backText = this.add.text(58, 24, '← Back', {
-      fontSize: '15px', fontFamily: 'Georgia, serif', color: '#aa8855',
+      fontSize: '14px', fontFamily: 'Courier New, monospace', color: '#00ffff',
     }).setResolution(res).setOrigin(0.5);
 
     const zone = this.add.zone(58, 24, 100, 32).setInteractive({ useHandCursor: true });
-    zone.on('pointerover', () => { drawBack(true); backText.setColor('#ddbb66'); });
-    zone.on('pointerout',  () => { drawBack(false); backText.setColor('#aa8855'); });
+    zone.on('pointerover', () => { drawBack(true); backText.setColor('#ff00ff'); });
+    zone.on('pointerout',  () => { drawBack(false); backText.setColor('#00ffff'); });
     zone.on('pointerdown', () => {
       this.cameras.main.fadeOut(400, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -178,19 +166,44 @@ export class MapSelectScene extends Phaser.Scene {
   // ─── Map image preview inside card ───────────────────────────────────────────
 
   private drawMapPreview(map: MapDef, cardX: number, cardY: number): void {
-    const key = `map_${map.id}`;
-    const previewCenterX = cardX + CARD_W / 2;
-    const previewCenterY = cardY + 8 + PREVIEW_H / 2;
+    const previewX = cardX + 8;
+    const previewY = cardY + 8;
+    const previewW = CARD_W - 16;
+    const previewH = PREVIEW_H - 8;
+    const centerX = previewX + previewW / 2;
+    const centerY = previewY + previewH / 2;
 
-    const img = this.add.image(previewCenterX, previewCenterY, key);
-    img.setOrigin(0.5, 0.5);
-    img.setDisplaySize(CARD_W - 16, PREVIEW_H - 8);
-    img.setDepth(1);
+    // Draw neon arcade-themed preview
+    const g = this.add.graphics().setDepth(1);
+    g.fillStyle(0x000000, 0.3);
+    g.fillRect(previewX, previewY, previewW, previewH);
 
-    // Subtle accent-coloured border around the preview
-    const g = this.add.graphics().setDepth(2);
-    g.lineStyle(1, map.accentColor, 0.35);
-    g.strokeRect(cardX + 8, cardY + 8, CARD_W - 16, PREVIEW_H - 8);
+    // Neon grid background
+    g.lineStyle(1, map.accentColor, 0.15);
+    const gridSize = 20;
+    for (let x = previewX; x < previewX + previewW; x += gridSize) {
+      g.lineBetween(x, previewY, x, previewY + previewH);
+    }
+    for (let y = previewY; y < previewY + previewH; y += gridSize) {
+      g.lineBetween(previewX, y, previewX + previewW, y);
+    }
+
+    // Map-specific neon accent
+    g.lineStyle(2, map.accentColor, 0.6);
+    g.strokeRect(previewX + 2, previewY + 2, previewW - 4, previewH - 4);
+
+    // Centered difficulty indicator
+    const diffColor = map.difficulty <= 2 ? 0x00ff00 : map.difficulty <= 4 ? 0xffff00 : 0xff00ff;
+    g.fillStyle(diffColor, 0.4);
+    g.fillCircle(centerX, centerY, 30);
+    g.lineStyle(2, diffColor, 0.8);
+    g.strokeCircle(centerX, centerY, 30);
+
+    // Difficulty level text
+    const diffText = this.add.text(centerX, centerY, `L${map.difficulty}`, {
+      fontSize: '28px', fontFamily: 'Courier New, monospace', color: '#00ffff',
+      stroke: map.accentColor, strokeThickness: 2,
+    }).setResolution(2).setOrigin(0.5).setDepth(2);
   }
 
   // ─── Card info area ───────────────────────────────────────────────────────────
