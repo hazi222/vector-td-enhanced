@@ -8,13 +8,7 @@ export class PreloaderScene extends Phaser.Scene {
     this.drawBackground();
     this.drawUI();
 
-    // ── Tower spritesheets ──
-    this.load.spritesheet('tower_gondor',  'assets/towers/Gondor.png',  { frameWidth: 563, frameHeight: 1536 });
-    this.load.spritesheet('tower_elves',   'assets/towers/Elven.png',   { frameWidth: 563, frameHeight: 1536 });
-    this.load.spritesheet('tower_dwarves', 'assets/towers/Dwarven.png', { frameWidth: 563, frameHeight: 1536 });
-    this.load.spritesheet('tower_rohan',   'assets/towers/Rohan.png',   { frameWidth: 563, frameHeight: 1536 });
-
-    // ── Map images ──
+    // ── Map images ── (for visual reference, not used in current minimalist design)
     this.load.image('map_shire',      'assets/maps/shire.png');
     this.load.image('map_moria',      'assets/maps/moria.png');
     this.load.image('map_mordor',     'assets/maps/mordor.png');
@@ -24,18 +18,10 @@ export class PreloaderScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Make the gray backgrounds in the tower strips transparent so towers
-    // render as cut-out PNGs over the map.
-    ['tower_gondor', 'tower_elves', 'tower_dwarves', 'tower_rohan'].forEach(key => {
-      this.removeBackground(key, 563, 1536);
-    });
-
     this.scene.start('MenuScene');
   }
 
-  // Flood-fill from the strip edges to clear any light, low-saturation pixels.
-  // Preserves white pixels inside the towers (e.g. Gondor citadel stone) because
-  // they are not connected to the outer background.
+  // Removed: Tower sprite background processing (towers now use geometric graphics rendering)
   private removeBackground(key: string, frameW: number, frameH: number): void {
     if (!this.textures.exists(key)) return;
     const tex = this.textures.get(key);
@@ -106,31 +92,29 @@ export class PreloaderScene extends Phaser.Scene {
   private drawBackground(): void {
     const g = this.add.graphics();
 
-    // Dark gothic backdrop
-    g.fillStyle(0x110800, 1);
+    // Dark neon backdrop
+    g.fillStyle(0x0a0a1a, 1);
     g.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Sauron red glow at top
-    g.fillStyle(0xcc1100, 0.10);
+    // Neon cyan glow at top
+    g.fillStyle(0x00ffff, 0.06);
     g.fillCircle(GAME_WIDTH / 2, GAME_HEIGHT * 0.22, 320);
-    g.fillStyle(0xff3300, 0.06);
+    g.fillStyle(0x00ffff, 0.03);
     g.fillCircle(GAME_WIDTH / 2, GAME_HEIGHT * 0.22, 200);
-    g.fillStyle(0xff6600, 0.04);
-    g.fillCircle(GAME_WIDTH / 2, GAME_HEIGHT * 0.22, 100);
 
-    // Horizon glow at bottom
+    // Neon magenta glow at bottom
     for (let i = 0; i < 6; i++) {
-      g.fillStyle(0xff3300, 0.03 - i * 0.004);
+      g.fillStyle(0xff00ff, 0.02 - i * 0.002);
       g.fillRect(0, GAME_HEIGHT - 60 - i * 50, GAME_WIDTH, 60 + i * 50);
     }
 
-    // Faint stars
+    // Bright neon stars
     for (let s = 0; s < 22; s++) {
-      g.fillStyle(0xffffee, Math.random() * 0.08 + 0.02);
+      g.fillStyle(0x00ffff, Math.random() * 0.15 + 0.05);
       g.fillCircle(
         Phaser.Math.Between(0, GAME_WIDTH),
         Phaser.Math.Between(0, GAME_HEIGHT / 3),
-        0.8,
+        1,
       );
     }
   }
@@ -180,10 +164,10 @@ export class PreloaderScene extends Phaser.Scene {
       pctText.setText(`${Math.round(value * 100)}%`);
     });
 
-    // Subtle quote
+    // Arcade tagline
     this.add.text(cx, GAME_HEIGHT - 30,
-      '"The world is changed. I feel it in the water..."',
-      { fontSize: '12px', fontFamily: 'Georgia, serif', color: '#3a2a14', fontStyle: 'italic' }
+      'DIGITAL DEFENSE. NEON RHYTHM. ARCADE GLORY.',
+      { fontSize: '12px', fontFamily: 'Courier New', color: '#00ffff', fontStyle: 'italic' }
     ).setResolution(res).setOrigin(0.5);
   }
 }

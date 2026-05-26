@@ -20,6 +20,8 @@ const config: Phaser.Types.Core.GameConfig = {
   render: {
     antialias: true,
     antialiasGL: true,
+    pixelArt: false,
+    maxLights: 10,
   },
 };
 

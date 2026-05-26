@@ -15,7 +15,7 @@ export class MenuScene extends Phaser.Scene {
     } catch (_) { /* canvas fallback */ }
   }
 
-  // ─── Background (reuse Mordor atmosphere) ────────────────────────────────────
+  // ─── Background ───────────────────────────────────────────────────────────────
 
   private drawBackground(): void {
     const g = this.add.graphics();

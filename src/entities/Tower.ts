@@ -16,9 +16,9 @@ export function upgradeCost(def: TowerDef, level: number): number {
 export class Tower extends Phaser.GameObjects.Container {
   readonly def: TowerDef;
 
-  private bodySprite: Phaser.GameObjects.Image;
-  private pipsG:      Phaser.GameObjects.Graphics;
-  private rangeG:     Phaser.GameObjects.Graphics;
+  private bodyG:   Phaser.GameObjects.Graphics;
+  private pipsG:   Phaser.GameObjects.Graphics;
+  private rangeG:  Phaser.GameObjects.Graphics;
 
   level:      number = 1;
   lastFired:  number = 0;
@@ -39,14 +39,10 @@ export class Tower extends Phaser.GameObjects.Container {
     this.row = row;
 
     this.rangeG = scene.add.graphics();
-
-    this.bodySprite = scene.add.image(0, 12, this.spriteKey(), 0);
-    this.bodySprite.setOrigin(0.5, 1.0);
-    this.bodySprite.setScale(0.075);
-
+    this.bodyG = scene.add.graphics();
     this.pipsG = scene.add.graphics();
 
-    this.add([this.bodySprite, this.pipsG]);
+    this.add([this.bodyG, this.pipsG]);
     (scene.add as Phaser.GameObjects.GameObjectFactory).existing(this as unknown as Phaser.GameObjects.GameObject);
 
     this.drawBody();
@@ -61,17 +57,68 @@ export class Tower extends Phaser.GameObjects.Container {
 
   // ─── Drawing ────────────────────────────────────────────────────────────────
 
-  private spriteKey(): string {
+  private getTowerColor(): number {
     switch (this.def.type) {
-      case 'laser':   return 'tower_gondor';
-      case 'rocket':  return 'tower_dwarves';
-      case 'slow':    return 'tower_elves';
-      case 'booster': return 'tower_rohan';
+      case 'laser':   return 0x3399ff;  // blue
+      case 'rocket':  return 0xff8800;  // orange
+      case 'slow':    return 0x00ccff;  // cyan
+      case 'booster': return 0x00cc00;  // green
     }
   }
 
   drawBody(): void {
-    this.bodySprite.setFrame(this.level - 1);
+    const g = this.bodyG;
+    g.clear();
+    const color = this.getTowerColor();
+    const size = 45;
+
+    // Draw base shape
+    switch (this.def.type) {
+      case 'laser':
+        g.fillStyle(color, 1);
+        g.fillCircle(0, 0, size);
+        // Crosshair symbol
+        g.lineStyle(2, 0xffffff, 0.8);
+        g.lineBetween(-12, 0, 12, 0);
+        g.lineBetween(0, -12, 0, 12);
+        break;
+
+      case 'rocket':
+        g.fillStyle(color, 1);
+        g.fillRect(-size, -size, size * 2, size * 2);
+        // Star symbol
+        g.fillStyle(0xffffff, 0.9);
+        for (let i = 0; i < 5; i++) {
+          const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+          const x = Math.cos(angle) * 15;
+          const y = Math.sin(angle) * 15;
+          g.fillCircle(x, y, 3);
+        }
+        break;
+
+      case 'slow':
+        g.fillStyle(color, 1);
+        g.fillTriangle(-size, size, size, size, 0, -size);
+        // Snowflake symbol
+        g.lineStyle(2, 0xffffff, 0.8);
+        for (let i = 0; i < 6; i++) {
+          const angle = (i / 6) * Math.PI * 2;
+          const x = Math.cos(angle) * 12;
+          const y = Math.sin(angle) * 12;
+          g.lineBetween(0, 0, x, y);
+        }
+        break;
+
+      case 'booster':
+        g.fillStyle(color, 1);
+        g.fillTriangle(0, -size - 5, -size, size, size, size);
+        // Plus symbol
+        g.fillStyle(0xffffff, 0.9);
+        g.fillRect(-5, -10, 10, 20);
+        g.fillRect(-10, -5, 20, 10);
+        break;
+    }
+
     this.drawLevelPips(this.level);
   }
 
@@ -79,7 +126,7 @@ export class Tower extends Phaser.GameObjects.Container {
   private drawLevelPips(lv: number): void {
     const g = this.pipsG;
     g.clear();
-    const pipY = 30;
+    const pipY = 20;
     const spacing = 8;
     const startX = -((5 - 1) * spacing) / 2;
     for (let p = 0; p < 5; p++) {

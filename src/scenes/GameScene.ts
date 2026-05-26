@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   CELL, COLS, GAME_HEIGHT, GAME_WIDTH,
-  MapDef, MAPS, ROWS, TOWERS, TowerType,
+  MapDef, MAPS, ROWS, TOWERS, TowerType, WAVES_TO_WIN,
 } from '../GameConfig';
 
 import { Enemy, spawnEnemy } from '../entities/Enemy';
@@ -39,7 +39,7 @@ export class GameScene extends Phaser.Scene {
   // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
   init(data: { map?: MapDef }): void {
-    this.mapDef = data?.map ?? MAPS[2]; // default Mordor
+    this.mapDef = data?.map ?? MAPS[2]; // default Cyber Storm
   }
 
   create(): void {
@@ -157,10 +157,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onWaveCleared(): void {
+    if (this.waves.currentWave >= WAVES_TO_WIN) {
+      this.triggerVictory();
+      return;
+    }
     this.state = 'prep';
-    this.showBanner('The Enemy is Repelled!', '#aaddcc');
+    this.showBanner(`Wave ${this.waves.currentWave} / ${WAVES_TO_WIN} Cleared!`, '#aaddcc');
     this.emitUI();
     this.time.delayedCall(3500, () => { if (this.state === 'prep') this.startNextWave(); });
+  }
+
+  private triggerVictory(): void {
+    this.state = 'gameover';
+    this.showBanner(`VICTORY! Wave ${this.waves.currentWave} Complete!`, '#ffdd88');
+    this.scene.get('UIScene').events.emit('victory', this.waves.currentWave);
   }
 
   private showBanner(text: string, color = '#ddcc88'): void {
@@ -528,215 +538,55 @@ export class GameScene extends Phaser.Scene {
   // ─── World drawing ───────────────────────────────────────────────────────────
 
   private drawMapBackground(): void {
-    if (this.mapDef.id === 'lothlorien') {
-      this.drawLothlorienBackground();
-      return;
-    }
-
-    const key = `map_${this.mapDef.id}`;
-    const img = this.add.image(0, 0, key);
-    img.setOrigin(0, 0);
-    img.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
-    img.setDepth(0);
+    const bg = this.add.graphics().setDepth(0);
+    const colors: Record<string, number> = {
+      shire:      0x2a4a2a,  // Dark green
+      moria:      0x1a2a3a,  // Dark blue
+      mordor:     0x3a1a1a,  // Dark red
+      lothlorien: 0x1a3a1a,  // Dark moss green
+      helmsdeep:  0x2a2a2a,  // Dark gray
+      pathdead:   0x2a1a3a,  // Dark purple
+    };
+    const bgColor = colors[this.mapDef.id] || 0x1a1a1a;
+    bg.fillStyle(bgColor, 1);
+    bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
   }
 
-  // ── Lothlórien themed background (hand-painted forest with golden sunlight)
-  private drawLothlorienBackground(): void {
-    // ── Layer 1: Sky gradient (golden to pale green-gold)
-    const sky = this.add.graphics().setDepth(0);
-    const skyStops = [
-      { r: 220, g: 200, b: 130, y: 0 },          // golden top
-      { r: 200, g: 190, b: 140, y: GAME_HEIGHT * 0.3 },
-      { r: 140, g: 160, b: 100, y: GAME_HEIGHT },
-    ];
-    const skySteps = 100;
-    for (let i = 0; i < skySteps; i++) {
-      const y = (i / skySteps) * GAME_HEIGHT;
-      let s0 = skyStops[0], s1 = skyStops[skyStops.length - 1];
-      for (let j = 0; j < skyStops.length - 1; j++) {
-        if (y >= skyStops[j].y && y <= skyStops[j + 1].y) { s0 = skyStops[j]; s1 = skyStops[j + 1]; break; }
-      }
-      const t = Phaser.Math.Clamp((y - s0.y) / Math.max(1, s1.y - s0.y), 0, 1);
-      const r = Math.round(s0.r + (s1.r - s0.r) * t);
-      const g = Math.round(s0.g + (s1.g - s0.g) * t);
-      const b = Math.round(s0.b + (s1.b - s0.b) * t);
-      sky.fillStyle((r << 16) | (g << 8) | b, 1);
-      sky.fillRect(0, y, GAME_WIDTH, GAME_HEIGHT / skySteps + 1);
-    }
-
-    // ── Layer 2: Strong golden sunlight rays (god rays from above)
-    const rays = this.add.graphics().setDepth(0.1);
-    for (let i = 0; i < 4; i++) {
-      const startX = 100 + i * (GAME_WIDTH / 4) + (Math.random() - 0.5) * 80;
-      const width = 120 + Math.random() * 100;
-      rays.fillStyle(0xf0d860, 0.12);
-      rays.fillTriangle(startX, -20, startX + width, -20, startX + width * 0.4, GAME_HEIGHT * 0.8);
-    }
-
-    // ── Layer 3: Massive tree trunks on both sides (left and right)
-    const treeTrunks = this.add.graphics().setDepth(0.15);
-
-    // Left tree trunk
-    treeTrunks.fillStyle(0x6b5a42, 1);
-    treeTrunks.fillRect(-60, 0, 180, GAME_HEIGHT);
-    // Highlight on left trunk
-    treeTrunks.fillStyle(0x8a7c6e, 0.6);
-    treeTrunks.fillRect(-50, 0, 50, GAME_HEIGHT);
-
-    // Right tree trunk
-    treeTrunks.fillStyle(0x6b5a42, 1);
-    treeTrunks.fillRect(GAME_WIDTH - 120, 0, 180, GAME_HEIGHT);
-    // Highlight on right trunk
-    treeTrunks.fillStyle(0x8a7c6e, 0.6);
-    treeTrunks.fillRect(GAME_WIDTH - 100, 0, 50, GAME_HEIGHT);
-
-    // ── Layer 4: Rich canopy foliage (golden-green)
-    const canopy = this.add.graphics().setDepth(0.2);
-    // Upper foliage with warm golden-green tones
-    canopy.fillStyle(0x9aaa4a, 0.7);
-    canopy.fillEllipse(80, 60, 140, 100);
-    canopy.fillEllipse(GAME_WIDTH - 80, 80, 140, 100);
-
-    canopy.fillStyle(0x8aa842, 0.5);
-    canopy.fillEllipse(100, 120, 100, 80);
-    canopy.fillEllipse(GAME_WIDTH - 100, 140, 100, 80);
-
-    // ── Layer 5: River down the center
-    const riverPath = this.mapDef.path;
-    const river = this.add.graphics().setDepth(0.3);
-
-    // Draw river as connected segments following the path
-    for (let i = 0; i < riverPath.length - 1; i++) {
-      const a = riverPath[i];
-      const b = riverPath[i + 1];
-      const dist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
-      const angle = Math.atan2(b.y - a.y, b.x - a.x);
-      const riverW = 35;
-
-      // Main river body (blue-green)
-      river.fillStyle(0x5a9a8a, 0.8);
-      const px1 = a.x + Math.sin(angle) * (riverW / 2);
-      const py1 = a.y - Math.cos(angle) * (riverW / 2);
-      const px2 = a.x - Math.sin(angle) * (riverW / 2);
-      const py2 = a.y + Math.cos(angle) * (riverW / 2);
-      const px3 = b.x + Math.sin(angle) * (riverW / 2);
-      const py3 = b.y - Math.cos(angle) * (riverW / 2);
-      const px4 = b.x - Math.sin(angle) * (riverW / 2);
-      const py4 = b.y + Math.cos(angle) * (riverW / 2);
-
-      river.fillTriangle(px1, py1, px2, py2, px3, py3);
-      river.fillTriangle(px2, py2, px3, py3, px4, py4);
-
-      // River highlight (lighter blue-green shimmer)
-      river.fillStyle(0x7ac4b4, 0.3);
-      river.fillTriangle(px1, py1, px3, py3, (px1 + px3) / 2, (py1 + py3) / 2 - 8);
-    }
-
-    // ── Layer 6: Forest floor vegetation (moss, ferns, undergrowth)
-    const floor = this.add.graphics().setDepth(0.35);
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        if (this.grid.getCellState(c, r) === 'path') continue;
-        const cellX = c * CELL;
-        const cellY = r * CELL;
-        const num = 3 + Math.floor(Math.random() * 2);
-        for (let k = 0; k < num; k++) {
-          const px = cellX + Math.random() * CELL;
-          const py = cellY + Math.random() * CELL;
-          const v = Math.random();
-          let color: number, alpha: number;
-          if (v < 0.4)      { color = 0x4a7a3a; alpha = 0.35 + Math.random() * 0.2; }  // golden-green
-          else if (v < 0.7) { color = 0x2d5a1a; alpha = 0.25 + Math.random() * 0.18; } // dark moss
-          else              { color = 0x6a8a3a; alpha = 0.18 + Math.random() * 0.15; } // mid-green
-          floor.fillStyle(color, alpha);
-          floor.fillEllipse(px, py, 8 + Math.random() * 18, 5 + Math.random() * 12);
-        }
-      }
-    }
-
-    // ── Layer 7: Scattered ferns and undergrowth
-    const ferns = this.add.graphics().setDepth(0.4);
-    let fernCount = 0, attempts = 0;
-    while (fernCount < 45 && attempts < 300) {
-      attempts++;
-      const col = Phaser.Math.Between(0, COLS - 1);
-      const row = Phaser.Math.Between(0, ROWS - 1);
-      if (this.grid.getCellState(col, row) === 'path') continue;
-      fernCount++;
-      const x = col * CELL + 8 + Math.random() * (CELL - 16);
-      const y = row * CELL + 8 + Math.random() * (CELL - 16);
-      const s = 0.6 + Math.random() * 0.6;
-      // Small fern leaves
-      ferns.fillStyle(0x3a6a2a, 0.7);
-      for (let f = 0; f < 4; f++) {
-        const angle = (f / 4) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-        const len = 6 * s + Math.random() * 3;
-        const tipX = x + Math.cos(angle) * len;
-        const tipY = y + Math.sin(angle) * len;
-        ferns.fillTriangle(x - 0.5, y, x + 0.5, y, tipX, tipY);
-      }
-    }
-
-    // ── Layer 8: Atmospheric haze and depth
-    const haze = this.add.graphics().setDepth(0.6);
-    haze.fillStyle(0xc0b880, 0.06);
-    haze.fillRect(0, GAME_HEIGHT * 0.4, GAME_WIDTH, GAME_HEIGHT * 0.4);
-
-    // ── Layer 9: Vignette (frame the play area)
-    const vignette = this.add.graphics().setDepth(0.9);
-    for (let i = 0; i < 4; i++) {
-      vignette.lineStyle(60 - i * 10, 0x000000, 0.04 - i * 0.008);
-      vignette.strokeRect(-30 - i * 6, -30 - i * 6, GAME_WIDTH + 60 + i * 12, GAME_HEIGHT + 60 + i * 12);
-    }
-  }
 
   private drawPath(): void {
-    const g  = this.add.graphics().setDepth(2);
+    const g = this.add.graphics().setDepth(2);
     const wp = this.mapDef.path;
     const hw = CELL;
 
     for (let i = 0; i < wp.length - 1; i++) {
-      const a  = wp[i];
-      const b  = wp[i + 1];
+      const a = wp[i];
+      const b = wp[i + 1];
       const x1 = Math.min(a.x, b.x) - hw;
       const y1 = Math.min(a.y, b.y) - hw;
-      const w  = Math.abs(b.x - a.x) + hw * 2;
-      const h  = Math.abs(b.y - a.y) + hw * 2;
+      const w = Math.abs(b.x - a.x) + hw * 2;
+      const h = Math.abs(b.y - a.y) + hw * 2;
 
-      // Soft drop shadow beneath the road
-      g.fillStyle(0x000000, 0.22);
-      g.fillRect(x1 - 3, y1 - 3, w + 6, h + 6);
+      // Simple shadow
+      g.fillStyle(0x000000, 0.2);
+      g.fillRect(x1 - 2, y1 - 2, w + 4, h + 4);
 
-      // Homogeneous warm tan dirt base
-      g.fillStyle(0x9a7c5a, 1);
+      // Base tan color
+      g.fillStyle(0x8b6f47, 1);
       g.fillRect(x1, y1, w, h);
 
-      // Lighter highlight blobs scattered for sun/dust feel
-      const lightCount = Math.max(2, Math.floor((w * h) / 1400));
-      for (let p = 0; p < lightCount; p++) {
-        g.fillStyle(0xb89878, 0.10 + Math.random() * 0.10);
-        g.fillEllipse(
+      // Subtle texture dots
+      const dotCount = Math.max(2, Math.floor((w * h) / 2000));
+      for (let p = 0; p < dotCount; p++) {
+        g.fillStyle(0x6a5230, 0.15);
+        g.fillCircle(
           x1 + 8 + Math.random() * (w - 16),
           y1 + 8 + Math.random() * (h - 16),
-          14 + Math.random() * 16,
-          10 + Math.random() * 10,
+          2 + Math.random() * 4,
         );
       }
 
-      // Darker soil patches for organic variation
-      const darkCount = Math.max(2, Math.floor((w * h) / 950));
-      for (let p = 0; p < darkCount; p++) {
-        g.fillStyle(0x6e5638, 0.10 + Math.random() * 0.14);
-        g.fillEllipse(
-          x1 + 8 + Math.random() * (w - 16),
-          y1 + 8 + Math.random() * (h - 16),
-          18 + Math.random() * 18,
-          12 + Math.random() * 12,
-        );
-      }
-
-      // Soft edge fade — no hard borders
-      g.lineStyle(1, 0x6a4f30, 0.45);
+      // Subtle border
+      g.lineStyle(1, 0x5a4030, 0.3);
       g.strokeRect(x1, y1, w, h);
     }
   }
