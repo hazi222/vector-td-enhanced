@@ -16,12 +16,13 @@ const config: Phaser.Types.Core.GameConfig = {
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    expandParent: true,
   },
   render: {
     antialias: true,
     antialiasGL: true,
     pixelArt: false,
-    maxLights: 10,
+    maxLights: 16,
   },
 };
 

@@ -1,17 +1,17 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH, MapDef, MAPS } from '../GameConfig';
 
-const CARD_W  = 500;
-const CARD_H  = 340;
-// Image preview area at top of the card (~200px tall)
-const PREVIEW_H = 200;
-const CARD_SPACING = 40;
+const CARD_W  = 660;
+const CARD_H  = 450;
+// Image preview area at top of the card (~260px tall)
+const PREVIEW_H = 260;
+const CARD_SPACING = 50;
 
-// Center the 3x2 grid on screen
+// Center the 3x2 grid on screen (2560x1440)
 const GRID_WIDTH = CARD_W * 3 + CARD_SPACING * 2;
 const GRID_HEIGHT = CARD_H * 2 + CARD_SPACING;
-const START_X = (1920 - GRID_WIDTH) / 2;
-const START_Y = (1080 - GRID_HEIGHT) / 2;
+const START_X = (2560 - GRID_WIDTH) / 2;
+const START_Y = (1440 - GRID_HEIGHT) / 2;
 
 const COL_X = [START_X, START_X + CARD_W + CARD_SPACING, START_X + (CARD_W + CARD_SPACING) * 2];
 const ROW_Y = [START_Y, START_Y + CARD_H + CARD_SPACING];

@@ -70,7 +70,7 @@ export class Tower extends Phaser.GameObjects.Container {
     const g = this.bodyG;
     g.clear();
     const color = this.getTowerColor();
-    const size = 22;
+    const size = 30;
     const lv = this.level;
 
     switch (this.def.type) {
@@ -100,23 +100,23 @@ export class Tower extends Phaser.GameObjects.Container {
       g.strokeCircle(0, 0, size * 0.6);
     }
     if (lv >= 3) {
-      g.lineStyle(1, 0xffffff, 0.8);
-      g.lineBetween(-8, 0, 8, 0);
-      g.lineBetween(0, -8, 0, 8);
+      g.lineStyle(2, 0xffffff, 0.8);
+      g.lineBetween(-11, 0, 11, 0);
+      g.lineBetween(0, -11, 0, 11);
     }
     if (lv >= 4) {
       g.lineStyle(1, 0xffffff, 0.6);
       g.strokeCircle(0, 0, size * 0.3);
     }
     if (lv >= 5) {
-      g.lineStyle(1, 0xffffff, 0.7);
-      g.lineBetween(-6, 0, 6, 0);
-      g.lineBetween(0, -6, 0, 6);
+      g.lineStyle(2, 0xffffff, 0.7);
+      g.lineBetween(-8, 0, 8, 0);
+      g.lineBetween(0, -8, 0, 8);
       g.lineStyle(1, 0xffffff, 0.4);
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2;
         const r = size * 0.8;
-        g.fillCircle(Math.cos(a) * r, Math.sin(a) * r, 1);
+        g.fillCircle(Math.cos(a) * r, Math.sin(a) * r, 2);
       }
     }
   }
