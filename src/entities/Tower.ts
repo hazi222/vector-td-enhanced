@@ -71,55 +71,156 @@ export class Tower extends Phaser.GameObjects.Container {
     g.clear();
     const color = this.getTowerColor();
     const size = 22;
+    const lv = this.level;
 
-    // Draw base shape
     switch (this.def.type) {
       case 'laser':
-        g.fillStyle(color, 1);
-        g.fillCircle(0, 0, size);
-        // Crosshair symbol
-        g.lineStyle(1, 0xffffff, 0.8);
-        g.lineBetween(-8, 0, 8, 0);
-        g.lineBetween(0, -8, 0, 8);
+        this.drawLaserShape(g, color, size, lv);
         break;
-
       case 'rocket':
-        g.fillStyle(color, 1);
-        g.fillRect(-size, -size, size * 2, size * 2);
-        // Star symbol
-        g.fillStyle(0xffffff, 0.9);
-        for (let i = 0; i < 5; i++) {
-          const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
-          const x = Math.cos(angle) * 8;
-          const y = Math.sin(angle) * 8;
-          g.fillCircle(x, y, 2);
-        }
+        this.drawRocketShape(g, color, size, lv);
         break;
-
       case 'slow':
-        g.fillStyle(color, 1);
-        g.fillTriangle(-size, size, size, size, 0, -size);
-        // Snowflake symbol
-        g.lineStyle(1, 0xffffff, 0.8);
-        for (let i = 0; i < 6; i++) {
-          const angle = (i / 6) * Math.PI * 2;
-          const x = Math.cos(angle) * 7;
-          const y = Math.sin(angle) * 7;
-          g.lineBetween(0, 0, x, y);
-        }
+        this.drawSlowShape(g, color, size, lv);
         break;
-
       case 'booster':
-        g.fillStyle(color, 1);
-        g.fillRect(-size, -size, size * 2, size * 2);
-        // Plus symbol
-        g.fillStyle(0xffffff, 0.9);
-        g.fillRect(-3, -6, 6, 12);
-        g.fillRect(-6, -3, 12, 6);
+        this.drawBoosterShape(g, color, size, lv);
         break;
     }
 
     this.drawLevelPips(this.level);
+  }
+
+  private drawLaserShape(g: Phaser.GameObjects.Graphics, color: number, size: number, lv: number): void {
+    g.fillStyle(color, 1);
+    g.fillCircle(0, 0, size);
+
+    if (lv >= 2) {
+      g.lineStyle(1, 0xffffff, 0.5);
+      g.strokeCircle(0, 0, size * 0.6);
+    }
+    if (lv >= 3) {
+      g.lineStyle(1, 0xffffff, 0.8);
+      g.lineBetween(-8, 0, 8, 0);
+      g.lineBetween(0, -8, 0, 8);
+    }
+    if (lv >= 4) {
+      g.lineStyle(1, 0xffffff, 0.6);
+      g.strokeCircle(0, 0, size * 0.3);
+    }
+    if (lv >= 5) {
+      g.lineStyle(1, 0xffffff, 0.7);
+      g.lineBetween(-6, 0, 6, 0);
+      g.lineBetween(0, -6, 0, 6);
+      g.lineStyle(1, 0xffffff, 0.4);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const r = size * 0.8;
+        g.fillCircle(Math.cos(a) * r, Math.sin(a) * r, 1);
+      }
+    }
+  }
+
+  private drawRocketShape(g: Phaser.GameObjects.Graphics, color: number, size: number, lv: number): void {
+    if (lv >= 4) {
+      g.fillStyle(color, 1);
+      g.fillRect(-size * 0.7, -size * 0.7, size * 1.4, size * 1.4);
+      g.save();
+      g.translate(0, 0);
+      g.rotate(Math.PI / 4);
+      g.lineStyle(1, 0xffffff, 0.5);
+      g.strokeRect(-size * 0.7, -size * 0.7, size * 1.4, size * 1.4);
+      g.restore();
+    } else {
+      g.fillStyle(color, 1);
+      g.fillRect(-size, -size, size * 2, size * 2);
+      if (lv >= 2) {
+        g.lineStyle(1, 0xffffff, 0.5);
+        g.strokeRect(-size, -size, size * 2, size * 2);
+      }
+    }
+
+    g.fillStyle(0xffffff, 0.9);
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+      const r = lv >= 3 ? 9 : 8;
+      const s = lv >= 3 ? 2.5 : 2;
+      const x = Math.cos(angle) * r;
+      const y = Math.sin(angle) * r;
+      g.fillCircle(x, y, s);
+    }
+
+    if (lv >= 5) {
+      g.lineStyle(1, 0xffffff, 0.4);
+      g.strokeRect(-size * 0.5, -size * 0.5, size, size);
+    }
+  }
+
+  private drawSlowShape(g: Phaser.GameObjects.Graphics, color: number, size: number, lv: number): void {
+    g.fillStyle(color, 1);
+    if (lv >= 4) {
+      g.fillTriangle(-size * 0.7, size * 0.7, size * 0.7, size * 0.7, 0, -size * 0.7);
+      g.fillTriangle(-size, size, size, size, 0, -size);
+    } else {
+      g.fillTriangle(-size, size, size, size, 0, -size);
+    }
+
+    g.lineStyle(1, 0xffffff, 0.8);
+    if (lv >= 2) {
+      g.lineStyle(1, 0xffffff, 0.6);
+      g.lineBetween(-size * 0.5, size * 0.5, size * 0.5, size * 0.5);
+      g.lineBetween(0, -size * 0.5, 0, size * 0.5);
+    }
+
+    if (lv >= 3) {
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2;
+        const r = 8;
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r;
+        g.lineBetween(0, 0, x, y);
+      }
+    }
+
+    if (lv >= 5) {
+      g.lineStyle(1, 0xffffff, 0.5);
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const r = size * 0.9;
+        g.lineBetween(0, 0, Math.cos(angle) * r, Math.sin(angle) * r);
+      }
+    }
+  }
+
+  private drawBoosterShape(g: Phaser.GameObjects.Graphics, color: number, size: number, lv: number): void {
+    const sz = lv >= 4 ? size * 1.2 : size;
+    g.fillStyle(color, 1);
+    g.fillRect(-sz, -sz, sz * 2, sz * 2);
+
+    if (lv >= 2) {
+      g.lineStyle(1, 0xffffff, 0.5);
+      g.strokeRect(-sz, -sz, sz * 2, sz * 2);
+    }
+
+    if (lv >= 3) {
+      g.lineStyle(1, 0xffffff, 0.5);
+      const cs = 4;
+      [[-sz, -sz], [sz, -sz], [-sz, sz], [sz, sz]].forEach(([ex, ey]) => {
+        g.lineBetween(ex, ey, ex + (ex < 0 ? cs : -cs), ey);
+        g.lineBetween(ex, ey, ex, ey + (ey < 0 ? cs : -cs));
+      });
+    }
+
+    g.fillStyle(0xffffff, 0.9);
+    const pSize = lv >= 4 ? 4 : 3;
+    const pLen = lv >= 4 ? 8 : 6;
+    g.fillRect(-pSize, -pLen, pSize * 2, pLen * 2);
+    g.fillRect(-pLen, -pSize, pLen * 2, pSize * 2);
+
+    if (lv >= 5) {
+      g.lineStyle(1, 0xffffff, 0.4);
+      g.strokeRect(-sz * 0.5, -sz * 0.5, sz, sz);
+    }
   }
 
   // ── Level pip indicators ─────────────────────────────────────────────────────
