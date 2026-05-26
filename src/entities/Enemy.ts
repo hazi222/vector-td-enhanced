@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { EFFECTIVE_MULT, EFFECTIVE_VS, EnemyDef, ENEMIES, EnemyType, PATH_PX, TowerType } from '../GameConfig';
+import { EFFECTIVE_MULT, EFFECTIVE_VS, EnemyDef, ENEMIES, EnemyType, TowerType } from '../GameConfig';
 
 const TRAIL_LEN = 10;
 
@@ -21,13 +21,14 @@ export class Enemy extends Phaser.GameObjects.Container {
   private trailG:     Phaser.GameObjects.Graphics;
   private bobTimer:   number = 0;
 
-  constructor(scene: Phaser.Scene, def: EnemyDef, path: Phaser.Curves.Path) {
-    const start = PATH_PX[0];
-    super(scene, start.x, start.y);
+  constructor(scene: Phaser.Scene, def: EnemyDef, path: Phaser.Curves.Path, hpMult = 1, speedMult = 1) {
+    const startPos = new Phaser.Math.Vector2();
+    path.getPoint(0, startPos);
+    super(scene, startPos.x, startPos.y);
     this.def        = def;
-    this.hp         = def.hp;
-    this.maxHp      = def.hp;
-    this.speed      = def.speed;
+    this.hp         = def.hp * hpMult;
+    this.maxHp      = def.hp * hpMult;
+    this.speed      = def.speed * speedMult;
     this.phaserPath = path;
 
     this.trailG = scene.add.graphics();
@@ -314,6 +315,6 @@ export class Enemy extends Phaser.GameObjects.Container {
   get enemyType(): EnemyType { return this.def.type; }
 }
 
-export function spawnEnemy(scene: Phaser.Scene, type: EnemyType, path: Phaser.Curves.Path): Enemy {
-  return new Enemy(scene, ENEMIES[type], path);
+export function spawnEnemy(scene: Phaser.Scene, type: EnemyType, path: Phaser.Curves.Path, hpMult = 1, speedMult = 1): Enemy {
+  return new Enemy(scene, ENEMIES[type], path, hpMult, speedMult);
 }

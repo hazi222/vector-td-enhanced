@@ -1,34 +1,32 @@
-import { CELL, COLS, PATH_PX, ROWS } from '../GameConfig';
+import { CELL, COLS, ROWS } from '../GameConfig';
 
 export type CellState = 'free' | 'path' | 'tower';
 
 export class GridSystem {
   private grid: CellState[][];
+  private pathWaypoints: { x: number; y: number }[];
 
-  constructor() {
+  constructor(path: { x: number; y: number }[]) {
+    this.pathWaypoints = path;
     this.grid = Array.from({ length: ROWS }, () => Array(COLS).fill('free') as CellState[]);
     this.markPath();
   }
 
   private markPath(): void {
-    const waypoints = PATH_PX;
-    for (let s = 0; s < waypoints.length - 1; s++) {
-      const a = waypoints[s];
-      const b = waypoints[s + 1];
-      // Walk along segment and mark cells within 1 cell width of centre
-      const steps = Math.ceil(Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y)) / (CELL * 0.25));
-      for (let t = 0; t <= steps; t++) {
-        const px = a.x + (b.x - a.x) * (t / steps);
-        const py = a.y + (b.y - a.y) * (t / steps);
-        // Mark this cell and its neighbours (path is 1-cell wide corridor)
-        for (let dr = -1; dr <= 1; dr++) {
-          for (let dc = -1; dc <= 1; dc++) {
-            const col = Math.floor(px / CELL) + dc;
-            const row = Math.floor(py / CELL) + dr;
-            if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
-              this.grid[row][col] = 'path';
-            }
-          }
+    // hw must match the hw used in GameScene.drawPath()
+    const hw = CELL;
+    const wp = this.pathWaypoints;
+    for (let s = 0; s < wp.length - 1; s++) {
+      const a = wp[s];
+      const b = wp[s + 1];
+      // Compute the exact rectangle this segment occupies (same as drawPath)
+      const minCol = Math.max(0,        Math.floor((Math.min(a.x, b.x) - hw) / CELL));
+      const maxCol = Math.min(COLS - 1, Math.floor((Math.max(a.x, b.x) + hw - 1) / CELL));
+      const minRow = Math.max(0,        Math.floor((Math.min(a.y, b.y) - hw) / CELL));
+      const maxRow = Math.min(ROWS - 1, Math.floor((Math.max(a.y, b.y) + hw - 1) / CELL));
+      for (let row = minRow; row <= maxRow; row++) {
+        for (let col = minCol; col <= maxCol; col++) {
+          this.grid[row][col] = 'path';
         }
       }
     }

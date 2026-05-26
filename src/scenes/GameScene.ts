@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import {
   CELL, COLS, GAME_HEIGHT, GAME_WIDTH,
-  PATH_PX, ROWS, STARTING_GOLD, STARTING_LIVES, TOWERS, TowerType,
+  MapDef, MAPS, ROWS, TOWERS, TowerType,
 } from '../GameConfig';
+
 import { Enemy, spawnEnemy } from '../entities/Enemy';
 import { HitResult, Projectile } from '../entities/Projectile';
 import { Tower } from '../entities/Tower';
@@ -21,8 +22,9 @@ export class GameScene extends Phaser.Scene {
 
   private path!: Phaser.Curves.Path;
 
-  private gold:        number = STARTING_GOLD;
-  private lives:       number = STARTING_LIVES;
+  private mapDef!: MapDef;
+  private gold:        number = 0;
+  private lives:       number = 0;
   private bonusPoints: number = 0;
 
   private placingType:   TowerType | null = null;
@@ -35,6 +37,10 @@ export class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────────
+
+  init(data: { map?: MapDef }): void {
+    this.mapDef = data?.map ?? MAPS[2]; // default Mordor
+  }
 
   create(): void {
     // Particle texture
@@ -51,27 +57,30 @@ export class GameScene extends Phaser.Scene {
     fg.generateTexture('fire_particle', 8, 8);
     fg.destroy();
 
-    this.path = new Phaser.Curves.Path(PATH_PX[0].x, PATH_PX[0].y);
-    for (let i = 1; i < PATH_PX.length; i++) this.path.lineTo(PATH_PX[i].x, PATH_PX[i].y);
+    const wp = this.mapDef.path;
+    this.path = new Phaser.Curves.Path(wp[0].x, wp[0].y);
+    for (let i = 1; i < wp.length; i++) this.path.lineTo(wp[i].x, wp[i].y);
 
-    this.grid  = new GridSystem();
+    this.gold  = this.mapDef.startGold;
+    this.lives = this.mapDef.startLives;
+
+    this.grid  = new GridSystem(this.mapDef.path);
     this.waves = new WaveSystem(
       this,
       type => this.doSpawnEnemy(type),
       ()   => { /* wait for enemies to clear */ },
     );
 
-    this.drawBackground();
+    this.drawMapBackground();
     this.drawPath();
     this.drawGrid();
-    this.drawMountains();
 
     this.ghostG = this.add.graphics().setDepth(20);
 
     // Camera post-processing
     try {
-      this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 0.12, 1, 8);
-      this.cameras.main.postFX.addVignette(0.5, 0.5, 0.82, 0.5);
+      this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 0.10, 1, 6);
+      this.cameras.main.postFX.addVignette(0.5, 0.5, 0.80, 0.20);
     } catch (_) { /* canvas fallback */ }
 
     this.input.mouse?.disableContextMenu();
@@ -113,8 +122,8 @@ export class GameScene extends Phaser.Scene {
         proj.setDepth(15);
         this.projectiles.push(proj);
       }
-      // Sweep kills after laser fires
-      if (tower.def.type === 'laser') this.sweepDeadEnemies();
+      // Sweep kills after instant-hit towers (laser, ent stomp)
+      if (tower.def.type === 'laser' || tower.def.type === 'booster') this.sweepDeadEnemies();
     }
 
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -155,10 +164,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showBanner(text: string, color = '#ddcc88'): void {
+    const res = Math.min(window.devicePixelRatio || 2, 3);
     const t = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50, text, {
-      fontSize: '36px', fontFamily: 'Georgia, serif', color,
+      fontSize: '40px', fontFamily: 'Georgia, serif', color,
       stroke: '#111100', strokeThickness: 6, shadow: { blur: 12, color: '#000000', fill: true },
-    }).setOrigin(0.5).setDepth(50).setAlpha(0);
+    }).setResolution(res).setOrigin(0.5).setDepth(50).setAlpha(0);
 
     this.tweens.add({
       targets: t, alpha: 1, y: GAME_HEIGHT / 2 - 85,
@@ -171,7 +181,7 @@ export class GameScene extends Phaser.Scene {
   // ─── Enemy management ────────────────────────────────────────────────────────
 
   private doSpawnEnemy(type: Parameters<typeof spawnEnemy>[1]): void {
-    const e = spawnEnemy(this, type, this.path);
+    const e = spawnEnemy(this, type, this.path, this.mapDef.enemyHpMult, this.mapDef.enemySpeedMult);
     e.setDepth(10);
     this.enemies.push(e);
   }
@@ -312,16 +322,17 @@ export class GameScene extends Phaser.Scene {
   private showUpgradePanel(tower: Tower): void {
     this.hideUpgradePanel();
 
+    const res = Math.min(window.devicePixelRatio || 2, 3);
     const PW = 218, PH = 170;
-    // Position above tower; clamp to screen
     let px = tower.x - PW / 2;
     let py = tower.y - PH - 36;
     px = Phaser.Math.Clamp(px, 4, GAME_WIDTH - PW - 4);
     py = Phaser.Math.Clamp(py, 4, GAME_HEIGHT - PH - 100);
 
     const push = (go: Phaser.GameObjects.GameObject) => { this.upgradePanel.push(go); return go; };
+    const txt = (x: number, y: number, t: string, style: Phaser.Types.GameObjects.Text.TextStyle) =>
+      push(this.add.text(x, y, t, style).setResolution(res));
 
-    // Panel background
     const bg = push(this.add.graphics().setDepth(30)) as Phaser.GameObjects.Graphics;
     bg.fillStyle(0x0e0a04, 0.96);
     bg.fillRect(px, py, PW, PH);
@@ -329,8 +340,6 @@ export class GameScene extends Phaser.Scene {
     bg.strokeRect(px, py, PW, PH);
     bg.lineStyle(1, 0xddbb66, 0.25);
     bg.strokeRect(px + 3, py + 3, PW - 6, PH - 6);
-
-    // Corner ornaments
     [[px, py], [px + PW, py], [px, py + PH], [px + PW, py + PH]].forEach(([cx, cy]) => {
       bg.fillStyle(0xddbb66, 0.4);
       bg.fillCircle(cx, cy, 4);
@@ -338,53 +347,45 @@ export class GameScene extends Phaser.Scene {
 
     const cx = px + PW / 2;
 
-    // Tower name
-    push(this.add.text(cx, py + 14, tower.def.name, {
-      fontSize: '14px', fontFamily: 'Georgia, serif', color: '#ddbb66',
+    (txt(cx, py + 14, tower.def.name, {
+      fontSize: '15px', fontFamily: 'Georgia, serif', color: '#ddbb66',
       stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0.5, 0).setDepth(31));
+    }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
 
-    // Level label with filled/empty stars
     const stars = '★'.repeat(tower.level) + '☆'.repeat(5 - tower.level);
-    push(this.add.text(cx, py + 32, `Level ${tower.level}  ${stars}`, {
-      fontSize: '12px', fontFamily: 'Georgia, serif',
+    (txt(cx, py + 33, `Level ${tower.level}  ${stars}`, {
+      fontSize: '13px', fontFamily: 'Georgia, serif',
       color: tower.level >= 5 ? '#ffee44' : tower.level >= 4 ? '#ddaa22' : '#aa8855',
-    }).setOrigin(0.5, 0).setDepth(31));
+    }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
 
-    // Divider
     const divG = push(this.add.graphics().setDepth(31)) as Phaser.GameObjects.Graphics;
     divG.lineStyle(1, 0x5a4020, 0.7);
-    divG.lineBetween(px + 12, py + 52, px + PW - 12, py + 52);
+    divG.lineBetween(px + 12, py + 54, px + PW - 12, py + 54);
 
-    // Current stats
-    const dmg   = Math.round(tower.damage);
-    const rng   = Math.round(tower.range);
-    const rate  = Math.round(tower.fireRate);
-    push(this.add.text(px + 14, py + 58, `DMG  ${dmg}`, { fontSize: '11px', fontFamily: 'Courier New', color: '#cc6644' }).setDepth(31));
-    push(this.add.text(cx,      py + 58, `RNG  ${rng}`, { fontSize: '11px', fontFamily: 'Courier New', color: '#4499cc' }).setOrigin(0.5, 0).setDepth(31));
-    push(this.add.text(px + PW - 14, py + 58, `RATE  ${rate}ms`, { fontSize: '11px', fontFamily: 'Courier New', color: '#88cc44' }).setOrigin(1, 0).setDepth(31));
+    const dmg  = Math.round(tower.damage);
+    const rng  = Math.round(tower.range);
+    const rate = Math.round(tower.fireRate);
+    (txt(px + 14,      py + 60, `DMG  ${dmg}`,      { fontSize: '12px', fontFamily: 'Courier New', color: '#cc6644' }) as Phaser.GameObjects.Text).setDepth(31);
+    (txt(cx,           py + 60, `RNG  ${rng}`,      { fontSize: '12px', fontFamily: 'Courier New', color: '#4499cc' }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
+    (txt(px + PW - 14, py + 60, `RATE  ${rate}ms`,  { fontSize: '12px', fontFamily: 'Courier New', color: '#88cc44' }) as Phaser.GameObjects.Text).setOrigin(1, 0).setDepth(31);
 
-    // Second divider
     const divG2 = push(this.add.graphics().setDepth(31)) as Phaser.GameObjects.Graphics;
     divG2.lineStyle(1, 0x5a4020, 0.7);
-    divG2.lineBetween(px + 12, py + 78, px + PW - 12, py + 78);
+    divG2.lineBetween(px + 12, py + 80, px + PW - 12, py + 80);
 
     if (tower.canUpgrade) {
-      // Next level preview
       const nextDmg  = Math.round(tower.def.damage * [1,1.35,1.80,2.35,3.00][tower.level] * tower.boostMult);
-      push(this.add.text(cx, py + 86, `→ Level ${tower.level + 1}:  DMG ${nextDmg}`, {
-        fontSize: '11px', fontFamily: 'Courier New', color: '#aaddcc',
-      }).setOrigin(0.5, 0).setDepth(31));
+      (txt(cx, py + 88, `→ Level ${tower.level + 1}:  DMG ${nextDmg}`, {
+        fontSize: '12px', fontFamily: 'Courier New', color: '#aaddcc',
+      }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
 
-      // Cost
       const cost = tower.nextUpgradeCost;
       const canAfford = this.gold >= cost;
-      push(this.add.text(cx, py + 102, `Cost: ${cost} Gold`, {
-        fontSize: '12px', fontFamily: 'Georgia, serif',
+      (txt(cx, py + 104, `Cost: ${cost} Gold`, {
+        fontSize: '13px', fontFamily: 'Georgia, serif',
         color: canAfford ? '#ddbb66' : '#774422',
-      }).setOrigin(0.5, 0).setDepth(31));
+      }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
 
-      // Upgrade button
       const btnW = 140, btnH = 34;
       const btnX = cx - btnW / 2;
       const btnY = py + PH - btnH - 10;
@@ -392,11 +393,12 @@ export class GameScene extends Phaser.Scene {
       const btnBg = push(this.add.graphics().setDepth(31)) as Phaser.GameObjects.Graphics;
       this.drawUpgradeBtn(btnBg, btnX, btnY, btnW, btnH, canAfford, false);
 
-      const btnLabel = push(this.add.text(cx, btnY + btnH / 2, 'UPGRADE', {
-        fontSize: '15px', fontFamily: 'Georgia, serif',
+      const btnLabel = txt(cx, btnY + btnH / 2, 'UPGRADE', {
+        fontSize: '16px', fontFamily: 'Georgia, serif',
         color: canAfford ? '#ddbb66' : '#554433',
         stroke: '#000000', strokeThickness: 3,
-      }).setOrigin(0.5).setDepth(32));
+      }) as Phaser.GameObjects.Text;
+      (btnLabel as Phaser.GameObjects.Text).setOrigin(0.5).setDepth(32);
 
       if (canAfford) {
         const zone = push(this.add.zone(cx, btnY + btnH / 2, btnW, btnH).setDepth(32).setInteractive({ useHandCursor: true }));
@@ -408,19 +410,16 @@ export class GameScene extends Phaser.Scene {
           this.drawUpgradeBtn(btnBg, btnX, btnY, btnW, btnH, true, false);
           (btnLabel as Phaser.GameObjects.Text).setColor('#ddbb66');
         });
-        (zone as Phaser.GameObjects.Zone).on('pointerdown', () => {
-          this.purchaseUpgrade(tower);
-        });
+        (zone as Phaser.GameObjects.Zone).on('pointerdown', () => this.purchaseUpgrade(tower));
       }
     } else {
-      // Max level
-      push(this.add.text(cx, py + 92, '— MAXIMUM LEVEL —', {
-        fontSize: '13px', fontFamily: 'Georgia, serif', color: '#ffee44',
+      (txt(cx, py + 94, '— MAXIMUM LEVEL —', {
+        fontSize: '14px', fontFamily: 'Georgia, serif', color: '#ffee44',
         stroke: '#000000', strokeThickness: 3,
-      }).setOrigin(0.5, 0).setDepth(31));
-      push(this.add.text(cx, py + 114, 'This soldier fights at full power', {
-        fontSize: '10px', fontFamily: 'Georgia, serif', color: '#6a5040', fontStyle: 'italic',
-      }).setOrigin(0.5, 0).setDepth(31));
+      }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
+      (txt(cx, py + 116, 'This soldier fights at full power', {
+        fontSize: '12px', fontFamily: 'Georgia, serif', color: '#6a5040', fontStyle: 'italic',
+      }) as Phaser.GameObjects.Text).setOrigin(0.5, 0).setDepth(31);
     }
   }
 
@@ -510,10 +509,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnFloatingText(x: number, y: number, text: string, color: string): void {
+    const res = Math.min(window.devicePixelRatio || 2, 3);
     const t = this.add.text(x, y, text, {
-      fontSize: '13px', fontFamily: 'Georgia, serif', color,
+      fontSize: '16px', fontFamily: 'Georgia, serif', color,
       stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(25);
+    }).setResolution(res).setOrigin(0.5).setDepth(25);
     this.tweens.add({ targets: t, y: y - 44, alpha: 0, duration: 900, ease: 'Cubic.Out', onComplete: () => t.destroy() });
   }
 
@@ -527,84 +527,173 @@ export class GameScene extends Phaser.Scene {
 
   // ─── World drawing ───────────────────────────────────────────────────────────
 
-  private drawBackground(): void {
-    const g = this.add.graphics().setDepth(0);
-
-    // Deep Mordor sky – near-black with red-brown tint
-    g.fillStyle(0x0a0406, 1);
-    g.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    // Mordor fire glow on horizon (bottom third)
-    for (let i = 0; i < 6; i++) {
-      const a = 0.04 - i * 0.006;
-      const y = GAME_HEIGHT - i * 35;
-      g.fillStyle(0xff4400, a);
-      g.fillRect(0, y, GAME_WIDTH, 40);
+  private drawMapBackground(): void {
+    if (this.mapDef.id === 'lothlorien') {
+      this.drawLothlorienBackground();
+      return;
     }
 
-    // Central upper glow – Eye of Sauron ambient light
-    g.fillStyle(0xcc2200, 0.06);
-    g.fillCircle(GAME_WIDTH / 2, 80, 280);
-    g.fillStyle(0xff4400, 0.04);
-    g.fillCircle(GAME_WIDTH / 2, 80, 180);
-
-    // Smoke/ash streaks across sky
-    g.lineStyle(1, 0x221100, 0.3);
-    for (let s = 0; s < 12; s++) {
-      const sy  = Phaser.Math.Between(30, GAME_HEIGHT - 120);
-      const sx1 = Phaser.Math.Between(0, GAME_WIDTH / 2);
-      const sx2 = sx1 + Phaser.Math.Between(80, 260);
-      g.lineBetween(sx1, sy, sx2, sy + Phaser.Math.Between(-8, 8));
-    }
-
-    // Sparse ember/spark dots drifting upward (static)
-    for (let e = 0; e < 40; e++) {
-      const ex = Phaser.Math.Between(0, GAME_WIDTH);
-      const ey = Phaser.Math.Between(GAME_HEIGHT / 2, GAME_HEIGHT);
-      const ea = Math.random() * 0.5 + 0.1;
-      g.fillStyle(0xff6600, ea);
-      g.fillCircle(ex, ey, Math.random() < 0.3 ? 1.5 : 0.8);
-    }
-
-    // A few faint stars barely visible through the smoke
-    for (let st = 0; st < 20; st++) {
-      g.fillStyle(0xffffee, Math.random() * 0.08 + 0.02);
-      g.fillCircle(Phaser.Math.Between(0, GAME_WIDTH), Phaser.Math.Between(0, GAME_HEIGHT / 3), 0.8);
-    }
+    const key = `map_${this.mapDef.id}`;
+    const img = this.add.image(0, 0, key);
+    img.setOrigin(0, 0);
+    img.setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+    img.setDepth(0);
   }
 
-  private drawMountains(): void {
-    const g = this.add.graphics().setDepth(1);
-
-    // Far distant mountains (darkest, Mordor range)
-    const farMtns = [
-      [0, 480], [120, 360], [240, 420], [380, 300], [520, 380],
-      [650, 320], [760, 400], [900, 340], [1040, 380], [1160, 310], [1280, 400], [1280, 500],
+  // ── Lothlórien themed background (hand-painted forest with golden sunlight)
+  private drawLothlorienBackground(): void {
+    // ── Layer 1: Sky gradient (golden to pale green-gold)
+    const sky = this.add.graphics().setDepth(0);
+    const skyStops = [
+      { r: 220, g: 200, b: 130, y: 0 },          // golden top
+      { r: 200, g: 190, b: 140, y: GAME_HEIGHT * 0.3 },
+      { r: 140, g: 160, b: 100, y: GAME_HEIGHT },
     ];
-    g.fillStyle(0x160a08, 1);
-    g.fillPoints(farMtns.map(([x, y]) => ({ x, y })), true);
+    const skySteps = 100;
+    for (let i = 0; i < skySteps; i++) {
+      const y = (i / skySteps) * GAME_HEIGHT;
+      let s0 = skyStops[0], s1 = skyStops[skyStops.length - 1];
+      for (let j = 0; j < skyStops.length - 1; j++) {
+        if (y >= skyStops[j].y && y <= skyStops[j + 1].y) { s0 = skyStops[j]; s1 = skyStops[j + 1]; break; }
+      }
+      const t = Phaser.Math.Clamp((y - s0.y) / Math.max(1, s1.y - s0.y), 0, 1);
+      const r = Math.round(s0.r + (s1.r - s0.r) * t);
+      const g = Math.round(s0.g + (s1.g - s0.g) * t);
+      const b = Math.round(s0.b + (s1.b - s0.b) * t);
+      sky.fillStyle((r << 16) | (g << 8) | b, 1);
+      sky.fillRect(0, y, GAME_WIDTH, GAME_HEIGHT / skySteps + 1);
+    }
 
-    // Nearer rocky ridges
-    const nearMtns = [
-      [0, 540], [80, 490], [180, 510], [280, 470], [360, 500],
-      [460, 460], [560, 490], [700, 455], [820, 485], [940, 460],
-      [1060, 490], [1180, 462], [1280, 480], [1280, 540],
-    ];
-    g.fillStyle(0x1e1008, 1);
-    g.fillPoints(nearMtns.map(([x, y]) => ({ x, y })), true);
+    // ── Layer 2: Strong golden sunlight rays (god rays from above)
+    const rays = this.add.graphics().setDepth(0.1);
+    for (let i = 0; i < 4; i++) {
+      const startX = 100 + i * (GAME_WIDTH / 4) + (Math.random() - 0.5) * 80;
+      const width = 120 + Math.random() * 100;
+      rays.fillStyle(0xf0d860, 0.12);
+      rays.fillTriangle(startX, -20, startX + width, -20, startX + width * 0.4, GAME_HEIGHT * 0.8);
+    }
 
-    // Lava/fire cracks in distant mountains (glowing orange lines)
-    g.lineStyle(1, 0xff4400, 0.25);
-    g.lineBetween(380, 300, 400, 340);
-    g.lineBetween(380, 300, 360, 340);
-    g.lineBetween(650, 320, 660, 350);
-    g.lineBetween(1160, 310, 1150, 350);
+    // ── Layer 3: Massive tree trunks on both sides (left and right)
+    const treeTrunks = this.add.graphics().setDepth(0.15);
+
+    // Left tree trunk
+    treeTrunks.fillStyle(0x6b5a42, 1);
+    treeTrunks.fillRect(-60, 0, 180, GAME_HEIGHT);
+    // Highlight on left trunk
+    treeTrunks.fillStyle(0x8a7c6e, 0.6);
+    treeTrunks.fillRect(-50, 0, 50, GAME_HEIGHT);
+
+    // Right tree trunk
+    treeTrunks.fillStyle(0x6b5a42, 1);
+    treeTrunks.fillRect(GAME_WIDTH - 120, 0, 180, GAME_HEIGHT);
+    // Highlight on right trunk
+    treeTrunks.fillStyle(0x8a7c6e, 0.6);
+    treeTrunks.fillRect(GAME_WIDTH - 100, 0, 50, GAME_HEIGHT);
+
+    // ── Layer 4: Rich canopy foliage (golden-green)
+    const canopy = this.add.graphics().setDepth(0.2);
+    // Upper foliage with warm golden-green tones
+    canopy.fillStyle(0x9aaa4a, 0.7);
+    canopy.fillEllipse(80, 60, 140, 100);
+    canopy.fillEllipse(GAME_WIDTH - 80, 80, 140, 100);
+
+    canopy.fillStyle(0x8aa842, 0.5);
+    canopy.fillEllipse(100, 120, 100, 80);
+    canopy.fillEllipse(GAME_WIDTH - 100, 140, 100, 80);
+
+    // ── Layer 5: River down the center
+    const riverPath = this.mapDef.path;
+    const river = this.add.graphics().setDepth(0.3);
+
+    // Draw river as connected segments following the path
+    for (let i = 0; i < riverPath.length - 1; i++) {
+      const a = riverPath[i];
+      const b = riverPath[i + 1];
+      const dist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
+      const angle = Math.atan2(b.y - a.y, b.x - a.x);
+      const riverW = 35;
+
+      // Main river body (blue-green)
+      river.fillStyle(0x5a9a8a, 0.8);
+      const px1 = a.x + Math.sin(angle) * (riverW / 2);
+      const py1 = a.y - Math.cos(angle) * (riverW / 2);
+      const px2 = a.x - Math.sin(angle) * (riverW / 2);
+      const py2 = a.y + Math.cos(angle) * (riverW / 2);
+      const px3 = b.x + Math.sin(angle) * (riverW / 2);
+      const py3 = b.y - Math.cos(angle) * (riverW / 2);
+      const px4 = b.x - Math.sin(angle) * (riverW / 2);
+      const py4 = b.y + Math.cos(angle) * (riverW / 2);
+
+      river.fillTriangle(px1, py1, px2, py2, px3, py3);
+      river.fillTriangle(px2, py2, px3, py3, px4, py4);
+
+      // River highlight (lighter blue-green shimmer)
+      river.fillStyle(0x7ac4b4, 0.3);
+      river.fillTriangle(px1, py1, px3, py3, (px1 + px3) / 2, (py1 + py3) / 2 - 8);
+    }
+
+    // ── Layer 6: Forest floor vegetation (moss, ferns, undergrowth)
+    const floor = this.add.graphics().setDepth(0.35);
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (this.grid.getCellState(c, r) === 'path') continue;
+        const cellX = c * CELL;
+        const cellY = r * CELL;
+        const num = 3 + Math.floor(Math.random() * 2);
+        for (let k = 0; k < num; k++) {
+          const px = cellX + Math.random() * CELL;
+          const py = cellY + Math.random() * CELL;
+          const v = Math.random();
+          let color: number, alpha: number;
+          if (v < 0.4)      { color = 0x4a7a3a; alpha = 0.35 + Math.random() * 0.2; }  // golden-green
+          else if (v < 0.7) { color = 0x2d5a1a; alpha = 0.25 + Math.random() * 0.18; } // dark moss
+          else              { color = 0x6a8a3a; alpha = 0.18 + Math.random() * 0.15; } // mid-green
+          floor.fillStyle(color, alpha);
+          floor.fillEllipse(px, py, 8 + Math.random() * 18, 5 + Math.random() * 12);
+        }
+      }
+    }
+
+    // ── Layer 7: Scattered ferns and undergrowth
+    const ferns = this.add.graphics().setDepth(0.4);
+    let fernCount = 0, attempts = 0;
+    while (fernCount < 45 && attempts < 300) {
+      attempts++;
+      const col = Phaser.Math.Between(0, COLS - 1);
+      const row = Phaser.Math.Between(0, ROWS - 1);
+      if (this.grid.getCellState(col, row) === 'path') continue;
+      fernCount++;
+      const x = col * CELL + 8 + Math.random() * (CELL - 16);
+      const y = row * CELL + 8 + Math.random() * (CELL - 16);
+      const s = 0.6 + Math.random() * 0.6;
+      // Small fern leaves
+      ferns.fillStyle(0x3a6a2a, 0.7);
+      for (let f = 0; f < 4; f++) {
+        const angle = (f / 4) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+        const len = 6 * s + Math.random() * 3;
+        const tipX = x + Math.cos(angle) * len;
+        const tipY = y + Math.sin(angle) * len;
+        ferns.fillTriangle(x - 0.5, y, x + 0.5, y, tipX, tipY);
+      }
+    }
+
+    // ── Layer 8: Atmospheric haze and depth
+    const haze = this.add.graphics().setDepth(0.6);
+    haze.fillStyle(0xc0b880, 0.06);
+    haze.fillRect(0, GAME_HEIGHT * 0.4, GAME_WIDTH, GAME_HEIGHT * 0.4);
+
+    // ── Layer 9: Vignette (frame the play area)
+    const vignette = this.add.graphics().setDepth(0.9);
+    for (let i = 0; i < 4; i++) {
+      vignette.lineStyle(60 - i * 10, 0x000000, 0.04 - i * 0.008);
+      vignette.strokeRect(-30 - i * 6, -30 - i * 6, GAME_WIDTH + 60 + i * 12, GAME_HEIGHT + 60 + i * 12);
+    }
   }
 
   private drawPath(): void {
     const g  = this.add.graphics().setDepth(2);
-    const wp = PATH_PX;
-    const hw = CELL + 2;
+    const wp = this.mapDef.path;
+    const hw = CELL;
 
     for (let i = 0; i < wp.length - 1; i++) {
       const a  = wp[i];
@@ -613,85 +702,48 @@ export class GameScene extends Phaser.Scene {
       const y1 = Math.min(a.y, b.y) - hw;
       const w  = Math.abs(b.x - a.x) + hw * 2;
       const h  = Math.abs(b.y - a.y) + hw * 2;
-      const isH = Math.abs(b.y - a.y) < 1;
 
-      // Warm ground glow beneath road
-      g.fillStyle(0x662200, 0.12);
-      g.fillRect(x1 - 4, y1 - 4, w + 8, h + 8);
+      // Soft drop shadow beneath the road
+      g.fillStyle(0x000000, 0.22);
+      g.fillRect(x1 - 3, y1 - 3, w + 6, h + 6);
 
-      // Road base – dark Mordor earth
-      g.fillStyle(0x1e1208, 1);
+      // Homogeneous warm tan dirt base
+      g.fillStyle(0x9a7c5a, 1);
       g.fillRect(x1, y1, w, h);
 
-      // Stone paving tiles
-      const tileSize = CELL * 0.85;
-      if (isH) {
-        for (let tx = x1 + 4; tx < x1 + w - 4; tx += tileSize) {
-          const tw = Math.min(tileSize - 3, x1 + w - 4 - tx);
-          if (tw < 4) break;
-          g.fillStyle(0x2e1f12, 1);
-          g.fillRect(tx, y1 + 4, tw, h - 8);
-          g.lineStyle(1, 0x3d2a18, 0.6);
-          g.strokeRect(tx, y1 + 4, tw, h - 8);
-        }
-      } else {
-        for (let ty = y1 + 4; ty < y1 + h - 4; ty += tileSize) {
-          const th = Math.min(tileSize - 3, y1 + h - 4 - ty);
-          if (th < 4) break;
-          g.fillStyle(0x2e1f12, 1);
-          g.fillRect(x1 + 4, ty, w - 8, th);
-          g.lineStyle(1, 0x3d2a18, 0.6);
-          g.strokeRect(x1 + 4, ty, w - 8, th);
-        }
+      // Lighter highlight blobs scattered for sun/dust feel
+      const lightCount = Math.max(2, Math.floor((w * h) / 1400));
+      for (let p = 0; p < lightCount; p++) {
+        g.fillStyle(0xb89878, 0.10 + Math.random() * 0.10);
+        g.fillEllipse(
+          x1 + 8 + Math.random() * (w - 16),
+          y1 + 8 + Math.random() * (h - 16),
+          14 + Math.random() * 16,
+          10 + Math.random() * 10,
+        );
       }
 
-      // Road edge walls (rough stone border)
-      g.lineStyle(3, 0x4a3020, 0.9);
+      // Darker soil patches for organic variation
+      const darkCount = Math.max(2, Math.floor((w * h) / 950));
+      for (let p = 0; p < darkCount; p++) {
+        g.fillStyle(0x6e5638, 0.10 + Math.random() * 0.14);
+        g.fillEllipse(
+          x1 + 8 + Math.random() * (w - 16),
+          y1 + 8 + Math.random() * (h - 16),
+          18 + Math.random() * 18,
+          12 + Math.random() * 12,
+        );
+      }
+
+      // Soft edge fade — no hard borders
+      g.lineStyle(1, 0x6a4f30, 0.45);
       g.strokeRect(x1, y1, w, h);
-      g.lineStyle(1, 0x664422, 0.4);
-      g.strokeRect(x1 + 2, y1 + 2, w - 4, h - 4);
     }
-
-    // Torches at each turning corner
-    for (let i = 1; i < wp.length - 1; i++) {
-      const pt = wp[i];
-      this.drawTorch(g, pt.x - CELL - 4, pt.y);
-      this.drawTorch(g, pt.x + CELL + 4, pt.y);
-    }
-
-    // Entry gate marker
-    g.fillStyle(0x664422, 0.8);
-    g.fillRect(wp[1].x - hw - 8, wp[0].y - 12, 8, 24);
-    g.fillStyle(0xff8800, 0.7);
-    g.fillTriangle(wp[1].x - hw, wp[0].y - 8, wp[1].x - hw, wp[0].y + 8, wp[1].x - hw + 12, wp[0].y);
-
-    // Exit – red warning cross
-    const ex = wp[wp.length - 2].x + hw + 8;
-    const ey = wp[wp.length - 1].y;
-    g.lineStyle(3, 0xff2200, 0.9);
-    g.lineBetween(ex - 8, ey - 8, ex + 8, ey + 8);
-    g.lineBetween(ex + 8, ey - 8, ex - 8, ey + 8);
-    g.lineStyle(1, 0xff4400, 0.5);
-    g.strokeCircle(ex, ey, 14);
-  }
-
-  private drawTorch(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
-    // Torch pole
-    g.fillStyle(0x554433, 1);
-    g.fillRect(x - 2, y - 18, 4, 20);
-    // Flame
-    g.fillStyle(0xff8800, 0.9);
-    g.fillTriangle(x - 5, y - 18, x + 5, y - 18, x, y - 30);
-    g.fillStyle(0xffcc00, 0.7);
-    g.fillTriangle(x - 3, y - 18, x + 3, y - 18, x, y - 26);
-    // Warm glow aura
-    g.fillStyle(0xff6600, 0.12);
-    g.fillCircle(x, y - 22, 22);
   }
 
   private drawGrid(): void {
-    const g = this.add.graphics().setDepth(3);
-    g.lineStyle(1, 0x1a1008, 0.4);
+    const g = this.add.graphics().setDepth(2.5);
+    g.lineStyle(1, 0xffffff, 0.08);
     for (let c = 0; c <= COLS; c++) g.lineBetween(c * CELL, 0, c * CELL, GAME_HEIGHT);
     for (let r = 0; r <= ROWS; r++) g.lineBetween(0, r * CELL, GAME_WIDTH, r * CELL);
   }

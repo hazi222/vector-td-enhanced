@@ -100,8 +100,9 @@ export class MenuScene extends Phaser.Scene {
   // ─── UI ──────────────────────────────────────────────────────────────────────
 
   private buildUI(): void {
-    const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2;
+    const cx  = GAME_WIDTH / 2;
+    const cy  = GAME_HEIGHT / 2;
+    const res = Math.min(window.devicePixelRatio || 2, 3);
 
     // ── Decorative frame ──
     const frame = this.add.graphics();
@@ -146,20 +147,20 @@ export class MenuScene extends Phaser.Scene {
 
     // ── Title ──
     this.add.text(cx, cy - 68, 'THE DEFENSE OF', {
-      fontSize: '18px', fontFamily: 'Georgia, serif', color: '#aa8855',
+      fontSize: '20px', fontFamily: 'Georgia, serif', color: '#aa8855',
       letterSpacing: 6,
-    }).setOrigin(0.5);
+    }).setResolution(res).setOrigin(0.5);
 
-    this.add.text(cx, cy - 40, 'MIDDLE-EARTH', {
-      fontSize: '52px', fontFamily: 'Georgia, serif', color: '#ddbb66',
+    this.add.text(cx, cy - 38, 'MIDDLE-EARTH', {
+      fontSize: '58px', fontFamily: 'Georgia, serif', color: '#ddbb66',
       stroke: '#110800', strokeThickness: 8,
       shadow: { blur: 24, color: '#ff4400', fill: true },
-    }).setOrigin(0.5);
+    }).setResolution(res).setOrigin(0.5);
 
-    this.add.text(cx, cy + 20, 'A Tower Defense Game', {
-      fontSize: '14px', fontFamily: 'Georgia, serif', color: '#7a6040',
+    this.add.text(cx, cy + 24, 'A Tower Defense Game', {
+      fontSize: '16px', fontFamily: 'Georgia, serif', color: '#7a6040',
       fontStyle: 'italic',
-    }).setOrigin(0.5);
+    }).setResolution(res).setOrigin(0.5);
 
     // ── Divider ──
     const div = this.add.graphics();
@@ -177,9 +178,9 @@ export class MenuScene extends Phaser.Scene {
     this.drawBtn(btnBg, cx, btnY, btnW, btnH, false);
 
     const btnText = this.add.text(cx, btnY, 'Begin the Defense', {
-      fontSize: '20px', fontFamily: 'Georgia, serif', color: '#ddbb66',
+      fontSize: '22px', fontFamily: 'Georgia, serif', color: '#ddbb66',
       stroke: '#110800', strokeThickness: 3,
-    }).setOrigin(0.5);
+    }).setResolution(res).setOrigin(0.5);
 
     const zone = this.add.zone(cx, btnY, btnW, btnH).setInteractive({ useHandCursor: true });
     zone.on('pointerover', () => {
@@ -193,15 +194,15 @@ export class MenuScene extends Phaser.Scene {
     zone.on('pointerdown', () => this.startGame());
 
     // ── Controls hint ──
-    this.add.text(cx, cy + 130, 'Keys 1-4 to select tower  •  Left-click to place  •  Right-click to cancel', {
-      fontSize: '10px', fontFamily: 'Courier New', color: '#4a3820',
-    }).setOrigin(0.5);
+    this.add.text(cx, cy + 132, 'Keys 1-4 to select tower  •  Left-click to place  •  Right-click to cancel', {
+      fontSize: '12px', fontFamily: 'Courier New', color: '#4a3820',
+    }).setResolution(res).setOrigin(0.5);
 
     // ── Quote ──
     this.add.text(cx, GAME_HEIGHT - 28,
       '"Even the smallest person can change the course of the future."',
-      { fontSize: '11px', fontFamily: 'Georgia, serif', color: '#3a2a14', fontStyle: 'italic' }
-    ).setOrigin(0.5);
+      { fontSize: '13px', fontFamily: 'Georgia, serif', color: '#3a2a14', fontStyle: 'italic' }
+    ).setResolution(res).setOrigin(0.5);
 
     // Entrance animation — fade in from black
     this.cameras.main.fadeIn(1200, 0, 0, 0);
@@ -228,7 +229,7 @@ export class MenuScene extends Phaser.Scene {
   private startGame(): void {
     this.cameras.main.fadeOut(600, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start('GameScene');
+      this.scene.start('MapSelectScene');
     });
   }
 }
