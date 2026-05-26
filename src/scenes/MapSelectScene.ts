@@ -1,14 +1,20 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH, MapDef, MAPS } from '../GameConfig';
 
-const CARD_W  = 390;
-const CARD_H  = 280;
-// Image preview area at top of the card (~165px tall)
-const PREVIEW_H = 165;
+const CARD_W  = 500;
+const CARD_H  = 340;
+// Image preview area at top of the card (~200px tall)
+const PREVIEW_H = 200;
+const CARD_SPACING = 40;
 
-// Card column left-edges and row top-edges
-const COL_X = [20, 450, 880];
-const ROW_Y = [80, 390];
+// Center the 3x2 grid on screen
+const GRID_WIDTH = CARD_W * 3 + CARD_SPACING * 2;
+const GRID_HEIGHT = CARD_H * 2 + CARD_SPACING;
+const START_X = (1920 - GRID_WIDTH) / 2;
+const START_Y = (1080 - GRID_HEIGHT) / 2;
+
+const COL_X = [START_X, START_X + CARD_W + CARD_SPACING, START_X + (CARD_W + CARD_SPACING) * 2];
+const ROW_Y = [START_Y, START_Y + CARD_H + CARD_SPACING];
 
 export class MapSelectScene extends Phaser.Scene {
   constructor() { super('MapSelectScene'); }
@@ -166,21 +172,21 @@ export class MapSelectScene extends Phaser.Scene {
   // ─── Map image preview inside card ───────────────────────────────────────────
 
   private drawMapPreview(map: MapDef, cardX: number, cardY: number): void {
-    const previewX = cardX + 8;
-    const previewY = cardY + 8;
-    const previewW = CARD_W - 16;
-    const previewH = PREVIEW_H - 8;
+    const previewX = cardX + 10;
+    const previewY = cardY + 10;
+    const previewW = CARD_W - 20;
+    const previewH = PREVIEW_H - 10;
     const centerX = previewX + previewW / 2;
     const centerY = previewY + previewH / 2;
 
     // Draw neon arcade-themed preview
     const g = this.add.graphics().setDepth(1);
-    g.fillStyle(0x000000, 0.3);
+    g.fillStyle(0x000000, 0.4);
     g.fillRect(previewX, previewY, previewW, previewH);
 
-    // Neon grid background
-    g.lineStyle(1, map.accentColor, 0.15);
-    const gridSize = 20;
+    // Fine neon grid background for better resolution
+    g.lineStyle(1, map.accentColor, 0.12);
+    const gridSize = 15;
     for (let x = previewX; x < previewX + previewW; x += gridSize) {
       g.lineBetween(x, previewY, x, previewY + previewH);
     }
@@ -188,22 +194,36 @@ export class MapSelectScene extends Phaser.Scene {
       g.lineBetween(previewX, y, previewX + previewW, y);
     }
 
-    // Map-specific neon accent
-    g.lineStyle(2, map.accentColor, 0.6);
+    // Accent grid lines (every 3 grid squares)
+    g.lineStyle(1, map.accentColor, 0.25);
+    for (let x = previewX; x < previewX + previewW; x += gridSize * 3) {
+      g.lineBetween(x, previewY, x, previewY + previewH);
+    }
+    for (let y = previewY; y < previewY + previewH; y += gridSize * 3) {
+      g.lineBetween(previewX, y, previewX + previewW, y);
+    }
+
+    // Map-specific neon border accent
+    g.lineStyle(3, map.accentColor, 0.7);
     g.strokeRect(previewX + 2, previewY + 2, previewW - 4, previewH - 4);
 
-    // Centered difficulty indicator
+    // Centered difficulty indicator - larger and more visible
     const diffColor = map.difficulty <= 2 ? 0x00ff00 : map.difficulty <= 4 ? 0xffff00 : 0xff00ff;
-    g.fillStyle(diffColor, 0.4);
-    g.fillCircle(centerX, centerY, 30);
-    g.lineStyle(2, diffColor, 0.8);
-    g.strokeCircle(centerX, centerY, 30);
+    g.fillStyle(diffColor, 0.3);
+    g.fillCircle(centerX, centerY, 42);
+    g.lineStyle(3, diffColor, 0.85);
+    g.strokeCircle(centerX, centerY, 42);
 
-    // Difficulty level text
+    // Inner accent circle
+    g.lineStyle(1, diffColor, 0.5);
+    g.strokeCircle(centerX, centerY, 35);
+
+    // Difficulty level text - higher resolution
+    const res = Math.min(window.devicePixelRatio || 2, 3);
     const diffText = this.add.text(centerX, centerY, `L${map.difficulty}`, {
-      fontSize: '28px', fontFamily: 'Courier New, monospace', color: '#00ffff',
-      stroke: map.accentColor, strokeThickness: 2,
-    }).setResolution(2).setOrigin(0.5).setDepth(2);
+      fontSize: '36px', fontFamily: 'Courier New, monospace', color: '#00ffff',
+      stroke: map.accentColor, strokeThickness: 3,
+    }).setResolution(res).setOrigin(0.5).setDepth(2);
   }
 
   // ─── Card info area ───────────────────────────────────────────────────────────
