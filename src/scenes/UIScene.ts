@@ -134,17 +134,17 @@ export class UIScene extends Phaser.Scene {
       this.btnGraphics.push(bg);
       this.drawButton(bg, cx, cy, type, false);
 
-      mkText(this, cx - BTN_W / 2 + 6, cy - BTN_H / 2 + 6, `${i + 1}`, {
-        fontSize: '16px', fontFamily: 'Courier New', color: C.hint,
+      mkText(this, cx - BTN_W / 2 + 8, cy - BTN_H / 2 + 8, `${i + 1}`, {
+        fontSize: '24px', fontFamily: 'Courier New', color: C.hint,
       }).setOrigin(0, 0);
 
-      mkText(this, cx, cy - BTN_H / 2 + 24, def.name, {
-        fontSize: '16px', fontFamily: 'Georgia, serif', color: C.gold,
-        stroke: '#000000', strokeThickness: 2,
+      mkText(this, cx, cy - BTN_H / 2 + 28, def.name, {
+        fontSize: '24px', fontFamily: 'Georgia, serif', color: C.gold,
+        stroke: '#000000', strokeThickness: 3,
       }).setOrigin(0.5, 0);
 
-      mkText(this, cx, cy + BTN_H / 2 - 16, `${def.cost}g`, {
-        fontSize: '17px', fontFamily: 'Courier New', color: C.goldDim,
+      mkText(this, cx, cy + BTN_H / 2 - 20, `${def.cost}g`, {
+        fontSize: '26px', fontFamily: 'Courier New', color: C.goldDim,
       }).setOrigin(0.5, 1);
 
       const zone = this.add.zone(cx, cy, BTN_W + 4, BTN_H + 4).setInteractive();
@@ -214,8 +214,8 @@ export class UIScene extends Phaser.Scene {
     this.drawActionBtnBg(false);
 
     this.actionBtnLabel = mkText(this, ACTION_BX, ACTION_BY, '▶  Send Wave', {
-      fontSize: '23px', fontFamily: 'Georgia, serif',
-      color: C.gold, stroke: '#000000', strokeThickness: 3,
+      fontSize: '32px', fontFamily: 'Georgia, serif',
+      color: C.gold, stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5);
 
     const zone = this.add.zone(ACTION_BX, ACTION_BY, ACTION_BW, ACTION_BH)
@@ -290,20 +290,20 @@ export class UIScene extends Phaser.Scene {
     const mid = PANEL_Y + PANEL_H / 2 + 2;
 
     const lbl = (text: string, x: number, y: number) =>
-      mkText(this, x, y, text, { fontSize: '16px', fontFamily: 'Georgia, serif', color: C.label }).setOrigin(0, 0.5);
+      mkText(this, x, y, text, { fontSize: '22px', fontFamily: 'Georgia, serif', color: C.label }).setOrigin(0, 0.5);
 
-    lbl('ASSAULT',  rx,       mid - 32);
-    lbl('TREASURY', rx + 120, mid - 32);
-    lbl('GARRISON', rx + 250, mid - 32);
-    lbl('HONOUR',   rx,       mid + 20);
+    lbl('ASSAULT',  rx,       mid - 36);
+    lbl('TREASURY', rx + 120, mid - 36);
+    lbl('GARRISON', rx + 250, mid - 36);
+    lbl('HONOUR',   rx,       mid + 24);
 
-    this.waveText   = mkText(this, rx,       mid - 10, '—',      { fontSize: '39px', fontFamily: 'Georgia, serif', color: C.wave   }).setOrigin(0, 0.5);
-    this.goldText   = mkText(this, rx + 120, mid - 10, '200',    { fontSize: '36px', fontFamily: 'Georgia, serif', color: C.gold   }).setOrigin(0, 0.5);
-    this.livesText  = mkText(this, rx + 250, mid - 10, '20',     { fontSize: '36px', fontFamily: 'Georgia, serif', color: C.lives  }).setOrigin(0, 0.5);
-    this.honourText = mkText(this, rx,       mid + 35, '0 pts', { fontSize: '20px', fontFamily: 'Georgia, serif', color: C.honour }).setOrigin(0, 0.5);
+    this.waveText   = mkText(this, rx,       mid - 12, '—',      { fontSize: '52px', fontFamily: 'Georgia, serif', color: C.wave   }).setOrigin(0, 0.5);
+    this.goldText   = mkText(this, rx + 120, mid - 12, '200',    { fontSize: '48px', fontFamily: 'Georgia, serif', color: C.gold   }).setOrigin(0, 0.5);
+    this.livesText  = mkText(this, rx + 250, mid - 12, '20',     { fontSize: '48px', fontFamily: 'Georgia, serif', color: C.lives  }).setOrigin(0, 0.5);
+    this.honourText = mkText(this, rx,       mid + 40, '0 pts', { fontSize: '28px', fontFamily: 'Georgia, serif', color: C.honour }).setOrigin(0, 0.5);
 
     this.hintText = mkText(this, ACTION_BX, PANEL_Y + 12, '', {
-      fontSize: '16px', fontFamily: 'Courier New', color: '#6a5030',
+      fontSize: '20px', fontFamily: 'Courier New', color: '#6a5030',
     }).setOrigin(0.5, 0);
   }
 
