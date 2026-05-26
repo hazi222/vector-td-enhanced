@@ -111,7 +111,7 @@ export class Tower extends Phaser.GameObjects.Container {
 
       case 'booster':
         g.fillStyle(color, 1);
-        g.fillTriangle(0, -size - 3, -size, size, size, size);
+        g.fillRect(-size, -size, size * 2, size * 2);
         // Plus symbol
         g.fillStyle(0xffffff, 0.9);
         g.fillRect(-3, -6, 6, 12);
