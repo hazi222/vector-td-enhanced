@@ -1,8 +1,8 @@
 export const GAME_WIDTH  = 1920;
 export const GAME_HEIGHT = 1080;
-export const CELL        = 80;
-export const COLS        = GAME_WIDTH  / CELL;   // 24
-export const ROWS        = GAME_HEIGHT / CELL;   // 13
+export const CELL        = 60;
+export const COLS        = GAME_WIDTH  / CELL;   // 32
+export const ROWS        = GAME_HEIGHT / CELL;   // 18
 
 export const INTEREST_RATE   = 0.05;
 export const WAVE_PREP_TIME  = 3000;  // Faster pacing
@@ -207,12 +207,12 @@ export interface EnemyDef {
 }
 
 export const ENEMIES: Record<EnemyType, EnemyDef> = {
-  blue:   { type: 'blue',   name: 'Pixel',      hp: 80,  speed: 90,  reward: 10, bonusPoints: 0, color: 0x00ffff, size: 12 },
-  red:    { type: 'red',    name: 'Virus',      hp: 130, speed: 65,  reward: 15, bonusPoints: 0, color: 0xff0088, size: 14 },
-  green:  { type: 'green',  name: 'Glitch',     hp: 165, speed: 55,  reward: 20, bonusPoints: 0, color: 0x00ff00, size: 16 },
-  yellow: { type: 'yellow', name: 'Spark',      hp: 60,  speed: 145, reward: 12, bonusPoints: 0, color: 0xffff00, size: 11 },
-  purple: { type: 'purple', name: 'Nova',       hp: 225, speed: 42,  reward: 25, bonusPoints: 0, color: 0xaa00ff, size: 18 },
-  grey:   { type: 'grey',   name: 'Core',       hp: 700, speed: 30,  reward: 50, bonusPoints: 5, color: 0xff00ff, size: 22 },
+  blue:   { type: 'blue',   name: 'Pixel',      hp: 80,  speed: 90,  reward: 10, bonusPoints: 0, color: 0x00ffff, size: 8 },
+  red:    { type: 'red',    name: 'Virus',      hp: 130, speed: 65,  reward: 15, bonusPoints: 0, color: 0xff0088, size: 10 },
+  green:  { type: 'green',  name: 'Glitch',     hp: 165, speed: 55,  reward: 20, bonusPoints: 0, color: 0x00ff00, size: 11 },
+  yellow: { type: 'yellow', name: 'Spark',      hp: 60,  speed: 145, reward: 12, bonusPoints: 0, color: 0xffff00, size: 8 },
+  purple: { type: 'purple', name: 'Nova',       hp: 225, speed: 42,  reward: 25, bonusPoints: 0, color: 0xaa00ff, size: 12 },
+  grey:   { type: 'grey',   name: 'Core',       hp: 700, speed: 30,  reward: 50, bonusPoints: 5, color: 0xff00ff, size: 15 },
 };
 
 // Pulse effective vs Pixel (blue), Blast vs Virus (red), Freeze vs Spark (yellow)

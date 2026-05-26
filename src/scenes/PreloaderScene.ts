@@ -8,13 +8,7 @@ export class PreloaderScene extends Phaser.Scene {
     this.drawBackground();
     this.drawUI();
 
-    // ── Map images ── (for visual reference, not used in current minimalist design)
-    this.load.image('map_shire',      'assets/maps/shire.png');
-    this.load.image('map_moria',      'assets/maps/moria.png');
-    this.load.image('map_mordor',     'assets/maps/mordor.png');
-    this.load.image('map_lothlorien', 'assets/maps/Lothlorien.png');
-    this.load.image('map_helmsdeep',  'assets/maps/Helmsdeep.png');
-    this.load.image('map_pathdead',   'assets/maps/pathdead.png');
+    // Map images removed - using minimalist geometric design with solid colors
   }
 
   create(): void {

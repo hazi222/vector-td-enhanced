@@ -70,7 +70,7 @@ export class Tower extends Phaser.GameObjects.Container {
     const g = this.bodyG;
     g.clear();
     const color = this.getTowerColor();
-    const size = 45;
+    const size = 22;
 
     // Draw base shape
     switch (this.def.type) {
@@ -78,9 +78,9 @@ export class Tower extends Phaser.GameObjects.Container {
         g.fillStyle(color, 1);
         g.fillCircle(0, 0, size);
         // Crosshair symbol
-        g.lineStyle(2, 0xffffff, 0.8);
-        g.lineBetween(-12, 0, 12, 0);
-        g.lineBetween(0, -12, 0, 12);
+        g.lineStyle(1, 0xffffff, 0.8);
+        g.lineBetween(-8, 0, 8, 0);
+        g.lineBetween(0, -8, 0, 8);
         break;
 
       case 'rocket':
@@ -90,9 +90,9 @@ export class Tower extends Phaser.GameObjects.Container {
         g.fillStyle(0xffffff, 0.9);
         for (let i = 0; i < 5; i++) {
           const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
-          const x = Math.cos(angle) * 15;
-          const y = Math.sin(angle) * 15;
-          g.fillCircle(x, y, 3);
+          const x = Math.cos(angle) * 8;
+          const y = Math.sin(angle) * 8;
+          g.fillCircle(x, y, 2);
         }
         break;
 
@@ -100,22 +100,22 @@ export class Tower extends Phaser.GameObjects.Container {
         g.fillStyle(color, 1);
         g.fillTriangle(-size, size, size, size, 0, -size);
         // Snowflake symbol
-        g.lineStyle(2, 0xffffff, 0.8);
+        g.lineStyle(1, 0xffffff, 0.8);
         for (let i = 0; i < 6; i++) {
           const angle = (i / 6) * Math.PI * 2;
-          const x = Math.cos(angle) * 12;
-          const y = Math.sin(angle) * 12;
+          const x = Math.cos(angle) * 7;
+          const y = Math.sin(angle) * 7;
           g.lineBetween(0, 0, x, y);
         }
         break;
 
       case 'booster':
         g.fillStyle(color, 1);
-        g.fillTriangle(0, -size - 5, -size, size, size, size);
+        g.fillTriangle(0, -size - 3, -size, size, size, size);
         // Plus symbol
         g.fillStyle(0xffffff, 0.9);
-        g.fillRect(-5, -10, 10, 20);
-        g.fillRect(-10, -5, 20, 10);
+        g.fillRect(-3, -6, 6, 12);
+        g.fillRect(-6, -3, 12, 6);
         break;
     }
 
