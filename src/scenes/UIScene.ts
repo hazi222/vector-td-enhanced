@@ -9,17 +9,17 @@ interface UIState {
   state:       'prep' | 'wave' | 'gameover';
 }
 
-const PANEL_H  = 96;
+const PANEL_H  = 128;
 const PANEL_Y  = GAME_HEIGHT - PANEL_H;
-const BTN_W    = 74;
-const BTN_H    = 78;
-const BTN_GAP  = 8;
+const BTN_W    = 100;
+const BTN_H    = 104;
+const BTN_GAP  = 10;
 const RES      = Math.min(window.devicePixelRatio || 2, 3);
 
 const ACTION_BX = GAME_WIDTH / 2;
-const ACTION_BY = PANEL_Y + 58;
-const ACTION_BW = 150;
-const ACTION_BH = 34;
+const ACTION_BY = PANEL_Y + 64;
+const ACTION_BW = 200;
+const ACTION_BH = 48;
 
 const TOWER_ORDER: TowerType[] = ['laser', 'rocket', 'slow', 'booster'];
 
@@ -134,17 +134,17 @@ export class UIScene extends Phaser.Scene {
       this.btnGraphics.push(bg);
       this.drawButton(bg, cx, cy, type, false);
 
-      mkText(this, cx - BTN_W / 2 + 4, cy - BTN_H / 2 + 4, `${i + 1}`, {
-        fontSize: '11px', fontFamily: 'Courier New', color: C.hint,
+      mkText(this, cx - BTN_W / 2 + 6, cy - BTN_H / 2 + 6, `${i + 1}`, {
+        fontSize: '16px', fontFamily: 'Courier New', color: C.hint,
       }).setOrigin(0, 0);
 
-      mkText(this, cx, cy - BTN_H / 2 + 17, def.name, {
-        fontSize: '11px', fontFamily: 'Georgia, serif', color: C.gold,
+      mkText(this, cx, cy - BTN_H / 2 + 24, def.name, {
+        fontSize: '16px', fontFamily: 'Georgia, serif', color: C.gold,
         stroke: '#000000', strokeThickness: 2,
       }).setOrigin(0.5, 0);
 
-      mkText(this, cx, cy + BTN_H / 2 - 12, `${def.cost}g`, {
-        fontSize: '12px', fontFamily: 'Courier New', color: C.goldDim,
+      mkText(this, cx, cy + BTN_H / 2 - 16, `${def.cost}g`, {
+        fontSize: '17px', fontFamily: 'Courier New', color: C.goldDim,
       }).setOrigin(0.5, 1);
 
       const zone = this.add.zone(cx, cy, BTN_W + 4, BTN_H + 4).setInteractive();
@@ -214,7 +214,7 @@ export class UIScene extends Phaser.Scene {
     this.drawActionBtnBg(false);
 
     this.actionBtnLabel = mkText(this, ACTION_BX, ACTION_BY, '▶  Send Wave', {
-      fontSize: '15px', fontFamily: 'Georgia, serif',
+      fontSize: '23px', fontFamily: 'Georgia, serif',
       color: C.gold, stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
@@ -226,10 +226,10 @@ export class UIScene extends Phaser.Scene {
 
     this.input.keyboard?.on('keydown-SPACE', () => this.onActionBtnClick());
 
-    this.pauseOverlay = mkText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80, 'PAUSED', {
-      fontSize: '80px', fontFamily: 'Georgia, serif', color: '#ddbb66',
-      stroke: '#000000', strokeThickness: 10,
-      shadow: { blur: 28, color: '#ff4400', fill: true },
+    this.pauseOverlay = mkText(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, 'PAUSED', {
+      fontSize: '120px', fontFamily: 'Georgia, serif', color: '#ddbb66',
+      stroke: '#000000', strokeThickness: 12,
+      shadow: { blur: 32, color: '#ff4400', fill: true },
     }).setOrigin(0.5).setDepth(100).setVisible(false);
   }
 
@@ -286,24 +286,24 @@ export class UIScene extends Phaser.Scene {
   // ─── HUD ──────────────────────────────────────────────────────────────────────
 
   private buildHUD(): void {
-    const rx  = GAME_WIDTH - 345;
+    const rx  = GAME_WIDTH - 460;
     const mid = PANEL_Y + PANEL_H / 2 + 2;
 
     const lbl = (text: string, x: number, y: number) =>
-      mkText(this, x, y, text, { fontSize: '12px', fontFamily: 'Georgia, serif', color: C.label }).setOrigin(0, 0.5);
+      mkText(this, x, y, text, { fontSize: '16px', fontFamily: 'Georgia, serif', color: C.label }).setOrigin(0, 0.5);
 
-    lbl('ASSAULT',  rx,       mid - 26);
-    lbl('TREASURY', rx + 90,  mid - 26);
-    lbl('GARRISON', rx + 190, mid - 26);
-    lbl('HONOUR',   rx,       mid + 16);
+    lbl('ASSAULT',  rx,       mid - 32);
+    lbl('TREASURY', rx + 120, mid - 32);
+    lbl('GARRISON', rx + 250, mid - 32);
+    lbl('HONOUR',   rx,       mid + 20);
 
-    this.waveText   = mkText(this, rx,       mid - 8, '—',      { fontSize: '26px', fontFamily: 'Georgia, serif', color: C.wave   }).setOrigin(0, 0.5);
-    this.goldText   = mkText(this, rx + 90,  mid - 8, '200',    { fontSize: '24px', fontFamily: 'Georgia, serif', color: C.gold   }).setOrigin(0, 0.5);
-    this.livesText  = mkText(this, rx + 190, mid - 8, '20',     { fontSize: '24px', fontFamily: 'Georgia, serif', color: C.lives  }).setOrigin(0, 0.5);
-    this.honourText = mkText(this, rx,       mid + 28, '0 pts', { fontSize: '15px', fontFamily: 'Georgia, serif', color: C.honour }).setOrigin(0, 0.5);
+    this.waveText   = mkText(this, rx,       mid - 10, '—',      { fontSize: '39px', fontFamily: 'Georgia, serif', color: C.wave   }).setOrigin(0, 0.5);
+    this.goldText   = mkText(this, rx + 120, mid - 10, '200',    { fontSize: '36px', fontFamily: 'Georgia, serif', color: C.gold   }).setOrigin(0, 0.5);
+    this.livesText  = mkText(this, rx + 250, mid - 10, '20',     { fontSize: '36px', fontFamily: 'Georgia, serif', color: C.lives  }).setOrigin(0, 0.5);
+    this.honourText = mkText(this, rx,       mid + 35, '0 pts', { fontSize: '20px', fontFamily: 'Georgia, serif', color: C.honour }).setOrigin(0, 0.5);
 
-    this.hintText = mkText(this, ACTION_BX, PANEL_Y + 8, '', {
-      fontSize: '12px', fontFamily: 'Courier New', color: '#6a5030',
+    this.hintText = mkText(this, ACTION_BX, PANEL_Y + 12, '', {
+      fontSize: '16px', fontFamily: 'Courier New', color: '#6a5030',
     }).setOrigin(0.5, 0);
   }
 
