@@ -122,17 +122,18 @@ export class Tower extends Phaser.GameObjects.Container {
   }
 
   private drawRocketShape(g: Phaser.GameObjects.Graphics, color: number, size: number, lv: number): void {
+    g.fillStyle(color, 1);
+
     if (lv >= 4) {
-      g.fillStyle(color, 1);
-      g.fillRect(-size * 0.7, -size * 0.7, size * 1.4, size * 1.4);
-      g.save();
-      g.translate(0, 0);
-      g.rotate(Math.PI / 4);
-      g.lineStyle(1, 0xffffff, 0.5);
-      g.strokeRect(-size * 0.7, -size * 0.7, size * 1.4, size * 1.4);
-      g.restore();
+      // Diamond shape (rotated square)
+      g.fillTriangle(0, -size, size, 0, 0, size);
+      g.fillTriangle(0, -size, -size, 0, 0, size);
+      if (lv >= 5) {
+        g.lineStyle(1, 0xffffff, 0.4);
+        g.strokeTriangle(0, -size, size, 0, 0, size);
+        g.strokeTriangle(0, -size, -size, 0, 0, size);
+      }
     } else {
-      g.fillStyle(color, 1);
       g.fillRect(-size, -size, size * 2, size * 2);
       if (lv >= 2) {
         g.lineStyle(1, 0xffffff, 0.5);
@@ -140,6 +141,7 @@ export class Tower extends Phaser.GameObjects.Container {
       }
     }
 
+    // Star symbol in center
     g.fillStyle(0xffffff, 0.9);
     for (let i = 0; i < 5; i++) {
       const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
@@ -148,11 +150,6 @@ export class Tower extends Phaser.GameObjects.Container {
       const x = Math.cos(angle) * r;
       const y = Math.sin(angle) * r;
       g.fillCircle(x, y, s);
-    }
-
-    if (lv >= 5) {
-      g.lineStyle(1, 0xffffff, 0.4);
-      g.strokeRect(-size * 0.5, -size * 0.5, size, size);
     }
   }
 
